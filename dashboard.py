@@ -1,4 +1,6 @@
 import sqlite3
+from datetime import datetime
+from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
@@ -57,6 +59,15 @@ def load_review() -> pd.DataFrame:
 df = load_cases()
 all_df = load_all_rows()
 
+def _format_dt(value) -> str:
+    if pd.isna(value):
+        return "N/A"
+    ts = pd.Timestamp(value)
+    if ts.tzinfo is not None:
+        ts = ts.tz_convert(None)
+    return ts.strftime("%Y-%m-%d %H:%M")
+
+
 if df.empty:
     st.warning("No case updates found. Run `python parser.py` first.")
     st.stop()
@@ -71,6 +82,7 @@ df["receipt_date"] = pd.to_datetime(df["receipt_date"], errors="coerce")
 df["permit_valid_until"] = pd.to_datetime(df["permit_valid_until"], errors="coerce")
 if not all_df.empty:
     all_df["message_date"] = pd.to_datetime(all_df["message_date"], errors="coerce")
+    all_df["parsed_at"] = pd.to_datetime(all_df["parsed_at"], errors="coerce")
     all_df["event_date"] = pd.to_datetime(all_df["event_date"], errors="coerce")
     all_df["receipt_date"] = pd.to_datetime(all_df["receipt_date"], errors="coerce")
     all_df["permit_valid_until"] = pd.to_datetime(
@@ -166,6 +178,21 @@ elif family_filter == "Family only":
     filtered = filtered[filtered["family_unit"] == 1]
 
 # ── Panel 1: KPI row ───────────────────────────────────────────────────────────
+st.subheader("Data Freshness")
+latest_message_date = (
+    all_df["message_date"].max() if not all_df.empty else pd.NaT
+)
+latest_parsed_at = all_df["parsed_at"].max() if not all_df.empty else pd.NaT
+try:
+    db_modified_at = datetime.fromtimestamp(Path(ANALYTICS_DB).stat().st_mtime)
+except OSError:
+    db_modified_at = pd.NaT
+
+f1, f2, f3 = st.columns(3)
+f1.metric("Last Parsed Message", _format_dt(latest_message_date))
+f2.metric("Parser Updated DB", _format_dt(latest_parsed_at))
+f3.metric("DB File Updated", _format_dt(db_modified_at))
+
 st.subheader("Overview")
 
 approved_df = filtered[
