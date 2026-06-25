@@ -384,6 +384,12 @@ if not area_df.empty:
         title="Case Type Share Over Time",
         labels={"event_date": "Month", "count": "Events"},
     )
+    fig5.update_xaxes(
+        dtick="M1",
+        tickformat="%b\n%Y",
+        ticklabelmode="period",
+        showgrid=True,
+    )
     st.plotly_chart(fig5, use_container_width=True)
 else:
     st.info("No events with dates in current filter.")
