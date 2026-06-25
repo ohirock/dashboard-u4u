@@ -10,6 +10,10 @@ from db import ANALYTICS_DB
 
 st.set_page_config(page_title="U4U/TPS/EAD Analytics", layout="wide")
 st.title("U4U / TPS / EAD Analytics Dashboard")
+st.info(
+    "Community-reported data from [@u4uead](https://t.me/u4uead). "
+    "To post your own case update, use [@eadu4u](https://t.me/eadu4u)."
+)
 
 MIN_RECEIPT_DATE = pd.Timestamp("2023-01-01")
 MAX_PROCESSING_DAYS = 1250
