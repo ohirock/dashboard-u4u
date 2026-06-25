@@ -61,22 +61,24 @@ def load_review() -> pd.DataFrame:
 
 
 @st.cache_data(ttl=300)
-def load_mentions() -> pd.DataFrame:
+def load_incidents() -> pd.DataFrame:
     try:
         conn = sqlite3.connect(ANALYTICS_DB)
         df = pd.read_sql_query(
             """
             SELECT
-                mt.message_id,
-                mt.topic,
+                ir.message_id,
+                ir.incident_type,
+                ir.estimated_people,
+                ir.confidence AS incident_confidence,
                 pc.message_date,
                 pc.category,
                 pc.case_type,
                 pc.event_type,
                 pc.event_date,
                 pc.confidence
-            FROM mention_topics mt
-            JOIN parsed_cases pc ON pc.message_id = mt.message_id
+            FROM incident_reports ir
+            JOIN parsed_cases pc ON pc.message_id = ir.message_id
             """,
             conn,
         )
@@ -88,7 +90,7 @@ def load_mentions() -> pd.DataFrame:
 
 df = load_cases()
 all_df = load_all_rows()
-mentions_df = load_mentions()
+incidents_df = load_incidents()
 
 def _format_dt(value) -> str:
     if pd.isna(value):
@@ -137,14 +139,14 @@ if not all_df.empty:
     all_df.loc[invalid_all_timeline, "event_date"] = pd.NaT
     all_df.loc[invalid_all_timeline, "days_processing"] = pd.NA
 
-if not mentions_df.empty:
-    mentions_df["message_date"] = pd.to_datetime(
-        mentions_df["message_date"], errors="coerce"
+if not incidents_df.empty:
+    incidents_df["message_date"] = pd.to_datetime(
+        incidents_df["message_date"], errors="coerce"
     )
-    mentions_df["event_date"] = pd.to_datetime(
-        mentions_df["event_date"], errors="coerce"
+    incidents_df["event_date"] = pd.to_datetime(
+        incidents_df["event_date"], errors="coerce"
     )
-    mentions_df["case_type"] = mentions_df["case_type"].replace(
+    incidents_df["case_type"] = incidents_df["case_type"].replace(
         {"I765": "EAD", "U4U": "REPAROLE"}
     )
 
@@ -408,68 +410,80 @@ if not heat_df.empty:
 else:
     st.info("No rows in current filter.")
 
-# ── Panel 7: Departure/self-deport mentions ───────────────────────────────────
-st.subheader("Departure / Self-Deport Mentions")
-if not mentions_df.empty:
-    unique_mention_messages = mentions_df["message_id"].nunique()
-    case_mention_messages = mentions_df[
-        mentions_df["category"] == "CASE_UPDATE"
-    ]["message_id"].nunique()
-    info_mention_messages = mentions_df[
-        mentions_df["category"].isin(["INFORMATIONAL", "UNCERTAIN", "NOISE"])
-    ]["message_id"].nunique()
+# ── Panel 7: Departure / detention reports ────────────────────────────────────
+st.subheader("Departure / Detention Reports")
+if not incidents_df.empty:
+    incident_order = ["Left US", "Deported / removed", "Detained"]
+    incident_summary = (
+        incidents_df.groupby("incident_type")
+        .agg(
+            reports=("message_id", "nunique"),
+            estimated_people=("estimated_people", "sum"),
+            first_report=("message_date", "min"),
+            latest_report=("message_date", "max"),
+        )
+        .reindex(incident_order, fill_value=0)
+        .reset_index()
+    )
+    no_reports = incident_summary["reports"].eq(0)
+    incident_summary.loc[no_reports, ["first_report", "latest_report"]] = pd.NaT
+
+    left_people = int(
+        incident_summary.loc[
+            incident_summary["incident_type"] == "Left US", "estimated_people"
+        ].iloc[0]
+    )
+    deported_people = int(
+        incident_summary.loc[
+            incident_summary["incident_type"] == "Deported / removed",
+            "estimated_people",
+        ].iloc[0]
+    )
+    detained_people = int(
+        incident_summary.loc[
+            incident_summary["incident_type"] == "Detained", "estimated_people"
+        ].iloc[0]
+    )
 
     m1, m2, m3 = st.columns(3)
-    m1.metric("Messages Mentioning Topic", unique_mention_messages)
-    m2.metric("Case Updates", case_mention_messages)
-    m3.metric("Info / Uncertain / Noise", info_mention_messages)
+    m1.metric("Reported Left US", left_people)
+    m2.metric("Reported Deported / Removed", deported_people)
+    m3.metric("Reported Detained", detained_people)
 
-    mention_counts = (
-        mentions_df.groupby(["topic", "category"])
-        .size()
-        .reset_index(name="rows")
-        .sort_values("rows", ascending=False)
-    )
-    st.dataframe(mention_counts, use_container_width=True, hide_index=True)
+    st.caption("Strict counts from personal/community reports; news and policy posts are excluded.")
+    st.dataframe(incident_summary, use_container_width=True, hide_index=True)
 
-    mention_monthly = mentions_df.dropna(subset=["message_date"]).copy()
-    if not mention_monthly.empty:
-        mention_monthly["month"] = mention_monthly["message_date"].dt.to_period(
+    incident_monthly = incidents_df.dropna(subset=["message_date"]).copy()
+    if not incident_monthly.empty:
+        incident_monthly["month"] = incident_monthly["message_date"].dt.to_period(
             "M"
         ).dt.to_timestamp()
-        mention_monthly = (
-            mention_monthly.groupby(["month", "topic"])
-            .size()
-            .reset_index(name="mentions")
+        incident_monthly = (
+            incident_monthly.groupby(["month", "incident_type"])
+            .agg(estimated_people=("estimated_people", "sum"))
+            .reset_index()
         )
-        fig_mentions = px.bar(
-            mention_monthly,
+        fig_incidents = px.bar(
+            incident_monthly,
             x="month",
-            y="mentions",
-            color="topic",
-            title="Departure / Self-Deport Mentions by Month",
-            labels={"month": "Month", "mentions": "Mentions", "topic": "Topic"},
+            y="estimated_people",
+            color="incident_type",
+            title="Reported People by Month",
+            labels={
+                "month": "Month",
+                "estimated_people": "Estimated People",
+                "incident_type": "Report Type",
+            },
         )
-        fig_mentions.update_xaxes(
+        fig_incidents.update_xaxes(
             dtick="M1",
             tickformat="%b\n%Y",
             ticklabelmode="period",
             showgrid=True,
         )
-        st.plotly_chart(fig_mentions, use_container_width=True)
-
-    mention_cases = mentions_df[mentions_df["category"] == "CASE_UPDATE"].copy()
-    if not mention_cases.empty:
-        by_case_status = (
-            mention_cases.groupby(["topic", "case_type", "event_type"])
-            .size()
-            .reset_index(name="rows")
-            .sort_values("rows", ascending=False)
-        )
-        st.caption("Mentions attached to extracted case updates")
-        st.dataframe(by_case_status, use_container_width=True, hide_index=True)
+        st.plotly_chart(fig_incidents, use_container_width=True)
 else:
-    st.info("No departure/self-deport mention table found in this database.")
+    st.info("No strict departure/detention reports found in this database.")
 
 # ── Panel 8: Case type share over time ────────────────────────────────────────
 st.subheader("Case Type Share Over Time")
