@@ -35,6 +35,7 @@ class DashboardCountBucket(StrictModel):
 
 class DashboardDurationSummary(StrictModel):
     sample_size: int = Field(ge=0)
+    average_days: float | None = None
     median_days: float | None = None
     first_quartile_days: float | None = None
     third_quartile_days: float | None = None
@@ -42,6 +43,7 @@ class DashboardDurationSummary(StrictModel):
     @model_validator(mode="after")
     def validate_sample(self) -> Self:
         values = (
+            self.average_days,
             self.median_days,
             self.first_quartile_days,
             self.third_quartile_days,
@@ -51,14 +53,46 @@ class DashboardDurationSummary(StrictModel):
         return self
 
 
+class DashboardDecisionWindows(StrictModel):
+    last_7_days: int = Field(ge=0)
+    previous_calendar_week: int = Field(ge=0)
+    current_calendar_week: int = Field(ge=0)
+    current_calendar_month: int = Field(ge=0)
+
+
+class DashboardMilestoneDuration(StrictModel):
+    case_family: str = Field(min_length=1)
+    milestone: str = Field(min_length=1)
+    duration: DashboardDurationSummary
+
+
+class DashboardWeeklyDuration(StrictModel):
+    week_start: date
+    case_family: str = Field(min_length=1)
+    milestone: str = Field(min_length=1)
+    duration: DashboardDurationSummary
+
+
+class DashboardExpediteDurationComparison(StrictModel):
+    case_family: str = Field(min_length=1)
+    milestone: str = Field(min_length=1)
+    with_expedite: DashboardDurationSummary
+    without_expedite: DashboardDurationSummary
+
+
 class DashboardMetrics(StrictModel):
     report_count: int = Field(ge=0)
+    case_observation_count: int = Field(ge=0)
     reports_by_month: tuple[DashboardCountBucket, ...]
     decisions_by_month: tuple[DashboardCountBucket, ...]
     reports_by_form: tuple[DashboardCountBucket, ...]
     reports_by_subtype: tuple[DashboardCountBucket, ...]
     current_status_distribution: tuple[DashboardCountBucket, ...]
     filing_to_decision: DashboardDurationSummary
+    final_decisions: DashboardDecisionWindows
+    milestone_durations: tuple[DashboardMilestoneDuration, ...]
+    weekly_milestone_durations: tuple[DashboardWeeklyDuration, ...]
+    expedite_duration_comparisons: tuple[DashboardExpediteDurationComparison, ...]
     expedite_request_count: int = Field(ge=0)
     expedite_by_channel: tuple[DashboardCountBucket, ...]
     reports_with_expedite: int = Field(ge=0)
@@ -127,15 +161,7 @@ def public_api_base_url(
         "::1",
     }:
         raise PublicDashboardUnavailable("The public dashboard API must use HTTPS.")
-    return urlunsplit(
-        (
-            parts.scheme,
-            parts.netloc,
-            parts.path.rstrip("/"),
-            "",
-            "",
-        )
-    )
+    return urlunsplit((parts.scheme, parts.netloc, parts.path.rstrip("/"), "", ""))
 
 
 def fetch_dashboard_snapshot(

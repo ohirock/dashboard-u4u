@@ -26,6 +26,7 @@ def snapshot_document() -> dict:
         },
         "metrics": {
             "report_count": 1,
+            "case_observation_count": 1,
             "reports_by_month": [{"key": "2026-07", "count": 1}],
             "decisions_by_month": [],
             "reports_by_form": [{"key": "i_131", "count": 1}],
@@ -33,10 +34,20 @@ def snapshot_document() -> dict:
             "current_status_distribution": [{"key": "approved", "count": 1}],
             "filing_to_decision": {
                 "sample_size": 0,
+                "average_days": None,
                 "median_days": None,
                 "first_quartile_days": None,
                 "third_quartile_days": None,
             },
+            "final_decisions": {
+                "last_7_days": 0,
+                "previous_calendar_week": 0,
+                "current_calendar_week": 0,
+                "current_calendar_month": 0,
+            },
+            "milestone_durations": [],
+            "weekly_milestone_durations": [],
+            "expedite_duration_comparisons": [],
             "expedite_request_count": 0,
             "expedite_by_channel": [],
             "reports_with_expedite": 0,
