@@ -54,6 +54,7 @@ def _label(value: str) -> str:
         "tps": "TPS",
         "ead": "EAD",
         "re_parole": "Re-parole",
+        "other_parole": "Initial / advance parole",
         "u4u_initial": "U4U initial parole",
         "u4u_reparole": "U4U re-parole",
         "pre_approval": "Pre-approval",
