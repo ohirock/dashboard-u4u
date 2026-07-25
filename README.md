@@ -1,13 +1,29 @@
-# U4U / TPS / EAD Analytics Dashboard
+# USCIS Community Case Tracker Dashboard
 
-Public Streamlit dashboard for aggregated immigration case timeline analytics.
+Public Streamlit dashboard for aggregate immigration-case trends.
 
-The included `analytics.db` is a sanitized export. Raw Telegram message text,
-authors, metadata, and parser errors are removed from this deploy copy.
+The dashboard reads only the sanitized snapshot exposed by the Oracle API:
 
-Run locally:
+```text
+browser -> Streamlit -> Oracle aggregate API -> MongoDB Atlas
+```
+
+It does not connect to MongoDB and does not receive Telegram, Gemini, receipt,
+message, image, or administrator data.
+
+## Run locally
 
 ```powershell
-pip install -r requirements.txt
-streamlit run dashboard.py
+python -m pip install -r requirements.txt
+$env:U4U_PUBLIC_API_BASE_URL = "https://141-148-77-229.sslip.io"
+python -m streamlit run dashboard.py
 ```
+
+`U4U_PUBLIC_API_BASE_URL` is optional for the current deployment because the
+public Oracle origin is the safe default. It can be overridden in a Streamlit
+secret or environment variable without changing code.
+
+## Deployment
+
+Streamlit Community Cloud deploys `dashboard.py` from branch `main`.
+No backend credentials are required or permitted.
