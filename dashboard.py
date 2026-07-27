@@ -4,6 +4,7 @@ import os
 
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 from streamlit.errors import StreamlitSecretNotFoundError
 
@@ -54,12 +55,12 @@ def _label(value: str) -> str:
         "tps": "TPS",
         "ead": "EAD",
         "re_parole": "Re-parole",
-        "other_parole": "Initial / advance parole",
         "u4u_initial": "U4U initial parole",
         "u4u_reparole": "U4U re-parole",
         "pre_approval": "Pre-approval",
         "biometrics": "Biometrics",
         "approval": "Approval",
+        "decision": "Final decision",
         "adjustment_of_status": "Adjustment of status",
     }
     return special.get(value, value.replace("_", " ").title())
@@ -139,10 +140,7 @@ def _pace_signals(rows) -> pd.DataFrame:
         if not baseline_weight:
             continue
         baseline = (
-            sum(
-                (row.duration.median_days or 0) * row.duration.sample_size
-                for row in baseline_rows
-            )
+            sum((row.duration.median_days or 0) * row.duration.sample_size for row in baseline_rows)
             / baseline_weight
         )
         if baseline <= 0:
@@ -171,8 +169,7 @@ def _expedite_frame(rows) -> pd.DataFrame:
         without_value = row.without_expedite
         difference = (
             with_value.median_days - without_value.median_days
-            if with_value.median_days is not None
-            and without_value.median_days is not None
+            if with_value.median_days is not None and without_value.median_days is not None
             else None
         )
         result.append(
@@ -189,6 +186,55 @@ def _expedite_frame(rows) -> pd.DataFrame:
             }
         )
     return pd.DataFrame(result)
+
+
+def _decision_summary(rows, family: str):
+    return next(
+        (row.duration for row in rows if row.case_family == family and row.milestone == "decision"),
+        None,
+    )
+
+
+def _decision_heatmap(rows, family: str) -> None:
+    labels = {False: "No reported expedite", True: "Reported expedite"}
+    frame = pd.DataFrame(
+        [
+            {
+                "Month": row.month_start.strftime("%Y-%m"),
+                "Expedite": labels[row.with_expedite],
+                "Median days": row.duration.median_days,
+                "Cases": row.duration.sample_size,
+            }
+            for row in rows
+            if row.case_family == family
+        ]
+    )
+    title = f"{_label(family)} filing-to-final-decision speed"
+    if frame.empty:
+        st.info(f"No monthly {_label(family)} decision samples are available yet.")
+        return
+    order = [labels[False], labels[True]]
+    medians = frame.pivot(index="Expedite", columns="Month", values="Median days").reindex(order)
+    samples = frame.pivot(index="Expedite", columns="Month", values="Cases").reindex(
+        index=order,
+        columns=medians.columns,
+    )
+    figure = go.Figure(
+        data=go.Heatmap(
+            z=medians.to_numpy(),
+            x=list(medians.columns),
+            y=list(medians.index),
+            customdata=samples.to_numpy(),
+            colorscale="RdYlGn_r",
+            colorbar={"title": "Median days"},
+            hovertemplate=(
+                "Decision month: %{x}<br>%{y}<br>Median: %{z:.0f} days"
+                "<br>Cases: %{customdata}<extra></extra>"
+            ),
+        )
+    )
+    figure.update_layout(title=title, height=320, margin={"l": 20, "r": 20, "t": 60, "b": 20})
+    st.plotly_chart(figure, width="stretch")
 
 
 st.title("USCIS Community Case Tracker")
@@ -217,15 +263,23 @@ else:
 
 metrics = snapshot.metrics
 quality = snapshot.quality
-duration = metrics.filing_to_decision
 decisions = metrics.final_decisions
+reparole_decision = _decision_summary(metrics.milestone_durations, "re_parole")
+ead_decision = _decision_summary(metrics.milestone_durations, "ead")
 
-k1, k2, k3, k4, k5 = st.columns(5)
-k1.metric("Case observations", metrics.case_observation_count)
-k2.metric("Average filing-to-decision", _days(duration.average_days))
-k3.metric("Median filing-to-decision", _days(duration.median_days))
-k4.metric("Final decisions this week", decisions.current_calendar_week)
-k5.metric("Final decisions this month", decisions.current_calendar_month)
+summary_1, summary_2, summary_3 = st.columns(3)
+summary_1.metric("Case observations", metrics.case_observation_count)
+summary_2.metric("Final decisions this week", decisions.current_calendar_week)
+summary_3.metric("Final decisions this month", decisions.current_calendar_month)
+
+st.subheader("Filing to final decision by benefit")
+r1, r2, r3, e1, e2, e3 = st.columns(6)
+r1.metric("Re-parole average", _days(reparole_decision.average_days if reparole_decision else None))
+r2.metric("Re-parole median", _days(reparole_decision.median_days if reparole_decision else None))
+r3.metric("Re-parole cases", reparole_decision.sample_size if reparole_decision else 0)
+e1.metric("EAD average", _days(ead_decision.average_days if ead_decision else None))
+e2.metric("EAD median", _days(ead_decision.median_days if ead_decision else None))
+e3.metric("EAD cases", ead_decision.sample_size if ead_decision else 0)
 
 speed_tab, cases_tab, expedite_tab, quality_tab = st.tabs(
     ("Processing speed", "Cases", "Expedite impact", "Data quality")
@@ -240,19 +294,21 @@ with speed_tab:
     d4.metric("Current month", decisions.current_calendar_month)
 
     summary = _milestone_frame(metrics.milestone_durations)
+    if not summary.empty:
+        summary = summary[summary["Milestone"] != "Approval"]
     st.subheader("Typical time from filing")
     if summary.empty:
         st.info("No complete filing-to-milestone samples are available yet.")
     else:
         preferred = ["TPS", "Re-parole", "EAD"]
         order = {name: index for index, name in enumerate(preferred)}
-        summary["_order"] = summary["Case type"].map(
-            lambda value: order.get(value, len(order))
-        )
+        summary["_order"] = summary["Case type"].map(lambda value: order.get(value, len(order)))
         summary = summary.sort_values(["_order", "Case type", "Milestone"])
         st.dataframe(summary.drop(columns="_order"), hide_index=True, width="stretch")
 
     weekly = _weekly_frame(metrics.weekly_milestone_durations)
+    if not weekly.empty:
+        weekly = weekly[weekly["Milestone"] != "Approval"]
     st.subheader("Weekly processing-time trend")
     if weekly.empty:
         st.info("Weekly trends will appear when dated milestones are available.")
@@ -268,13 +324,9 @@ with speed_tab:
             families,
             index=families.index(default_family),
         )
-        milestones = list(
-            dict.fromkeys(weekly.loc[weekly["Case type"] == family, "Milestone"])
-        )
+        milestones = list(dict.fromkeys(weekly.loc[weekly["Case type"] == family, "Milestone"]))
         milestone = c2.selectbox("Milestone", milestones)
-        selected = weekly[
-            (weekly["Case type"] == family) & (weekly["Milestone"] == milestone)
-        ]
+        selected = weekly[(weekly["Case type"] == family) & (weekly["Milestone"] == milestone)]
         trend = selected.melt(
             id_vars=["Week", "Cases"],
             value_vars=["Average days", "Median days"],
@@ -345,11 +397,25 @@ with cases_tab:
 
 with expedite_tab:
     comparison = _expedite_frame(metrics.expedite_duration_comparisons)
+    if not comparison.empty:
+        comparison = comparison[
+            comparison["Case type"].isin(["Re-parole", "EAD"])
+            & (comparison["Milestone"] == "Final decision")
+        ]
     st.subheader("Processing time with and without reported expedite")
     if comparison.empty:
         st.info("No complete expedite comparison samples are available yet.")
     else:
         st.dataframe(comparison, hide_index=True, width="stretch")
+    heatmap_left, heatmap_right = st.columns(2)
+    with heatmap_left:
+        _decision_heatmap(metrics.monthly_decision_durations, "re_parole")
+    with heatmap_right:
+        _decision_heatmap(metrics.monthly_decision_durations, "ead")
+    st.caption(
+        "Each cell is the median time from the reported initial filing date to a final "
+        "approval or denial, grouped by decision month. Empty cells have no complete sample."
+    )
     e1, e2 = st.columns(2)
     e1.metric("Reported expedite requests", metrics.expedite_request_count)
     e2.metric("Reports with expedite", metrics.reports_with_expedite)
@@ -371,9 +437,7 @@ with quality_tab:
     q3.metric("Unknown form", quality.unknown_form_count)
     q4.metric("Unknown status", quality.unknown_status_count)
     review_total = metrics.historic_pending_count + metrics.historic_reviewed_count
-    review_percent = (
-        metrics.historic_reviewed_count / review_total * 100 if review_total else 0.0
-    )
+    review_percent = metrics.historic_reviewed_count / review_total * 100 if review_total else 0.0
     st.metric("Historic review complete", f"{review_percent:.1f}%")
     quality_rows = pd.DataFrame(
         [

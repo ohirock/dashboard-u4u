@@ -48,6 +48,7 @@ def snapshot_document() -> dict:
             "milestone_durations": [],
             "weekly_milestone_durations": [],
             "expedite_duration_comparisons": [],
+            "monthly_decision_durations": [],
             "expedite_request_count": 0,
             "expedite_by_channel": [],
             "reports_with_expedite": 0,
@@ -95,9 +96,7 @@ class DashboardDataTests(unittest.TestCase):
         with self.assertRaises(PublicDashboardUnavailable):
             public_api_base_url({"U4U_PUBLIC_API_BASE_URL": "http://example.com"})
         with self.assertRaises(PublicDashboardUnavailable):
-            public_api_base_url(
-                {"U4U_PUBLIC_API_BASE_URL": "https://user:pass@example.com"}
-            )
+            public_api_base_url({"U4U_PUBLIC_API_BASE_URL": "https://user:pass@example.com"})
 
     def test_fetches_and_strictly_validates_aggregate_snapshot(self) -> None:
         snapshot = fetch_dashboard_snapshot(
