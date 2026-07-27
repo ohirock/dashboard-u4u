@@ -73,35 +73,38 @@ def _load_personal_snapshot(base_url: str):
 
 
 def _render_refresh_countdown(fetched_at: datetime) -> None:
-    """A live, ticking countdown that reloads the page once the cache expires.
+    """A purely informational, repeating countdown.
 
-    `st.markdown(unsafe_allow_html=True)` silently strips <script> tags, so
-    a countdown built that way never ticks. `components.html` renders in its
-    own sandboxed iframe that does execute scripts.
+    Communicates the underlying cache's refresh cadence — it never reloads
+    or reruns the page. Reopen the page (or switch tabs) after it reaches
+    zero to see whether new data arrived.
     """
 
-    next_refresh_at = fetched_at + timedelta(seconds=PERSONAL_DASHBOARD_CACHE_TTL_SECONDS)
+    period_seconds = PERSONAL_DASHBOARD_CACHE_TTL_SECONDS
+    next_refresh_at = fetched_at + timedelta(seconds=period_seconds)
     components.html(
         f"""
         <div style="font-family:'Source Sans Pro',sans-serif;font-size:0.8rem;
                      color:gray;">
-        This tab refreshes automatically. Next check in
-        <span id="personal-dashboard-countdown">{PERSONAL_DASHBOARD_CACHE_TTL_SECONDS}s</span>.
+        New data may be available in
+        <span id="personal-dashboard-countdown">{period_seconds}s</span>
+        — reopen this page to check.
         </div>
         <script>
         (function() {{
-            const target = new Date("{next_refresh_at.isoformat()}").getTime();
+            let target = new Date("{next_refresh_at.isoformat()}").getTime();
+            const periodMs = {period_seconds} * 1000;
             const el = document.getElementById("personal-dashboard-countdown");
             function tick() {{
-                const remaining = Math.max(0, Math.round((target - Date.now()) / 1000));
-                el.textContent = remaining > 0 ? remaining + "s" : "refreshing…";
-                if (remaining <= 0) {{
-                    clearInterval(interval);
-                    window.parent.location.reload();
+                let remaining = Math.round((target - Date.now()) / 1000);
+                while (remaining <= 0) {{
+                    target += periodMs;
+                    remaining = Math.round((target - Date.now()) / 1000);
                 }}
+                el.textContent = remaining + "s";
             }}
             tick();
-            const interval = setInterval(tick, 1000);
+            setInterval(tick, 1000);
         }})();
         </script>
         """,
