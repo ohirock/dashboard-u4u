@@ -1,11 +1,13 @@
 """Public Streamlit UI over the aggregate-only Oracle dashboard API."""
 
 import os
+from datetime import UTC, datetime, timedelta
 
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 from streamlit.errors import StreamlitSecretNotFoundError
 
 try:
@@ -42,6 +44,8 @@ st.set_page_config(
     layout="wide",
 )
 
+PERSONAL_DASHBOARD_CACHE_TTL_SECONDS = 30
+
 
 def _secret_api_url() -> str | None:
     try:
@@ -56,11 +60,53 @@ def _load_snapshot(base_url: str):
     return fetch_dashboard_snapshot(base_url)
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=PERSONAL_DASHBOARD_CACHE_TTL_SECONDS, show_spinner=False)
 def _load_personal_snapshot(base_url: str):
-    if fetch_personal_dashboard_snapshot is None:
-        return None
-    return fetch_personal_dashboard_snapshot(base_url)
+    """Return (snapshot_or_none, fetched_at) so the UI can show a countdown.
+
+    `fetched_at` is captured once, when this cache entry is populated, so the
+    countdown reflects true cache expiry rather than each viewer's page load.
+    """
+
+    snapshot = None if fetch_personal_dashboard_snapshot is None else fetch_personal_dashboard_snapshot(base_url)
+    return snapshot, datetime.now(UTC)
+
+
+def _render_refresh_countdown(fetched_at: datetime) -> None:
+    """A live, ticking countdown that reloads the page once the cache expires.
+
+    `st.markdown(unsafe_allow_html=True)` silently strips <script> tags, so
+    a countdown built that way never ticks. `components.html` renders in its
+    own sandboxed iframe that does execute scripts.
+    """
+
+    next_refresh_at = fetched_at + timedelta(seconds=PERSONAL_DASHBOARD_CACHE_TTL_SECONDS)
+    components.html(
+        f"""
+        <div style="font-family:'Source Sans Pro',sans-serif;font-size:0.8rem;
+                     color:gray;">
+        This tab refreshes automatically. Next check in
+        <span id="personal-dashboard-countdown">{PERSONAL_DASHBOARD_CACHE_TTL_SECONDS}s</span>.
+        </div>
+        <script>
+        (function() {{
+            const target = new Date("{next_refresh_at.isoformat()}").getTime();
+            const el = document.getElementById("personal-dashboard-countdown");
+            function tick() {{
+                const remaining = Math.max(0, Math.round((target - Date.now()) / 1000));
+                el.textContent = remaining > 0 ? remaining + "s" : "refreshing…";
+                if (remaining <= 0) {{
+                    clearInterval(interval);
+                    window.parent.location.reload();
+                }}
+            }}
+            tick();
+            const interval = setInterval(tick, 1000);
+        }})();
+        </script>
+        """,
+        height=24,
+    )
 
 
 def _label(value: str) -> str:
@@ -526,9 +572,10 @@ with personal_tab:
         "tracking bot. No names, comments, receipt numbers, or Telegram "
         "identities are ever included here."
     )
-    personal_snapshot = _load_personal_snapshot(api_base_url)
+    personal_snapshot, personal_fetched_at = _load_personal_snapshot(api_base_url)
     if personal_snapshot is None:
         st.info("Community self-tracking aggregates are not available yet.")
+        _render_refresh_countdown(personal_fetched_at)
     else:
         counts = personal_snapshot.counts
         p1, p2 = st.columns(2)
@@ -561,6 +608,7 @@ with personal_tab:
             f"Snapshot generated "
             f"{personal_snapshot.generated_at.strftime('%Y-%m-%d %H:%M UTC')}."
         )
+        _render_refresh_countdown(personal_fetched_at)
 
 st.divider()
 st.subheader("How to interpret this dashboard")
