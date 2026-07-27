@@ -36,11 +36,20 @@ canonical `/api/public/dashboard` snapshot above — no raw comments,
 Telegram identities, or other private fields ever leave the personal-bot's
 private MongoDB collection. If the personal bot's storage feature flag is
 disabled, this tab shows "not available yet" without affecting the rest of
-the page. Its underlying cache refreshes every 30 seconds, rather than the
-5-minute cache used elsewhere, and a countdown communicates that cadence.
-The countdown is purely informational — it never reloads or reruns the
-page; reopen the page after it reaches zero to see whether new data
-arrived.
+the page.
+
+## Data refresh
+
+Both the canonical snapshot and the personal-tracking snapshot share the
+same 300-second server-side cache (`PAGE_DATA_CACHE_TTL_SECONDS`). A single
+"Data refresh will happen in..." countdown is shown once, above all tabs —
+not per tab — reflecting whichever of the two caches will expire soonest.
+The cache is shared by every visitor (not per-browser-session), so the
+countdown shows the same value to everyone and is unaffected by any one
+visitor's manual page refresh. The countdown is purely informational: it
+never reloads or reruns the page on its own; reopen the page after it
+reaches zero to see whether new data arrived.
+
 ## Run locally
 
 ```powershell
