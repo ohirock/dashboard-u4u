@@ -13,7 +13,6 @@ try:
         PublicDashboardUnavailable,
         bucket_rows,
         fetch_dashboard_snapshot,
-        fetch_personal_dashboard_snapshot,
         public_api_base_url,
         snapshot_age_hours,
     )
@@ -22,7 +21,6 @@ except ModuleNotFoundError:
         PublicDashboardUnavailable,
         bucket_rows,
         fetch_dashboard_snapshot,
-        fetch_personal_dashboard_snapshot,
         public_api_base_url,
         snapshot_age_hours,
     )
@@ -45,11 +43,6 @@ def _secret_api_url() -> str | None:
 @st.cache_data(ttl=300, show_spinner=False)
 def _load_snapshot(base_url: str):
     return fetch_dashboard_snapshot(base_url)
-
-
-@st.cache_data(ttl=300, show_spinner=False)
-def _load_personal_snapshot(base_url: str):
-    return fetch_personal_dashboard_snapshot(base_url)
 
 
 def _label(value: str) -> str:
@@ -306,14 +299,8 @@ e1.metric("EAD average", _days(ead_decision.average_days if ead_decision else No
 e2.metric("EAD median", _days(ead_decision.median_days if ead_decision else None))
 e3.metric("EAD cases", ead_decision.sample_size if ead_decision else 0)
 
-speed_tab, cases_tab, expedite_tab, quality_tab, personal_tab = st.tabs(
-    (
-        "Processing speed",
-        "Cases",
-        "Expedite impact",
-        "Data quality",
-        "Community self-tracking",
-    )
+speed_tab, cases_tab, expedite_tab, quality_tab = st.tabs(
+    ("Processing speed", "Cases", "Expedite impact", "Data quality")
 )
 
 with speed_tab:
@@ -508,48 +495,6 @@ with quality_tab:
         ),
         width="stretch",
     )
-
-with personal_tab:
-    st.caption(
-        "Anonymous, aggregate-only counts from the separate personal "
-        "tracking bot. No names, comments, receipt numbers, or Telegram "
-        "identities are ever included here."
-    )
-    personal_snapshot = _load_personal_snapshot(api_base_url)
-    if personal_snapshot is None:
-        st.info("Community self-tracking aggregates are not available yet.")
-    else:
-        counts = personal_snapshot.counts
-        p1, p2 = st.columns(2)
-        p1.metric("Self-tracked submissions", counts.submission_count)
-        wait = personal_snapshot.pending_wait_days
-        p2.metric(
-            "Median wait so far (pending)",
-            _days(wait.median_days) if wait.sample_size else "Not available",
-        )
-        left, right = st.columns(2)
-        with left:
-            _bar(
-                counts.by_form_type,
-                key_label="Form",
-                title="Self-tracked submissions by form",
-            )
-        with right:
-            _bar(
-                counts.by_status,
-                key_label="Current status",
-                title="Self-tracked current status distribution",
-                horizontal=True,
-            )
-        _bar(
-            counts.by_filed_month,
-            key_label="Reported month",
-            title="Self-tracked submissions by filing month",
-        )
-        st.caption(
-            f"Snapshot generated "
-            f"{personal_snapshot.generated_at.strftime('%Y-%m-%d %H:%M UTC')}."
-        )
 
 st.divider()
 st.subheader("How to interpret this dashboard")

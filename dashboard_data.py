@@ -15,7 +15,6 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 PUBLIC_API_URL_ENV = "U4U_PUBLIC_API_BASE_URL"
 DEFAULT_PUBLIC_API_BASE_URL = "https://141-148-77-229.sslip.io"
 DASHBOARD_PATH = "/api/public/dashboard"
-PERSONAL_DASHBOARD_PATH = "/api/public/personal-dashboard"
 MAX_SNAPSHOT_BYTES = 1_048_576
 
 
@@ -142,22 +141,6 @@ class DashboardSnapshot(StrictModel):
         return self
 
 
-class PersonalDashboardCounts(StrictModel):
-    """Aggregate-only counts from the separate personal tracking bot."""
-
-    submission_count: int = Field(ge=0)
-    by_form_type: tuple[DashboardCountBucket, ...] = ()
-    by_status: tuple[DashboardCountBucket, ...] = ()
-    by_filed_month: tuple[DashboardCountBucket, ...] = ()
-
-
-class PersonalDashboardSnapshot(StrictModel):
-    generated_at: datetime
-    data_version: int = Field(gt=0)
-    counts: PersonalDashboardCounts
-    pending_wait_days: DashboardDurationSummary
-
-
 def public_api_base_url(
     environment: Mapping[str, str],
     *,
@@ -237,49 +220,6 @@ def fetch_dashboard_snapshot(
         raise PublicDashboardUnavailable(
             "The dashboard snapshot failed validation."
         ) from None
-
-
-def fetch_personal_dashboard_snapshot(
-    base_url: str,
-    *,
-    opener: Callable[..., Any] = urlopen,
-    timeout_seconds: float = 10.0,
-) -> PersonalDashboardSnapshot | None:
-    """Fetch the optional, anonymized personal-bot snapshot.
-
-    Returns `None` (never raises) on any failure — a 404 because the
-    feature flag is off, a 503 before the first rebuild, or any network or
-    validation problem. This tab is a bonus; it must never disrupt the four
-    canonical tabs that already depend on `fetch_dashboard_snapshot`.
-    """
-
-    try:
-        normalized = public_api_base_url({PUBLIC_API_URL_ENV: base_url})
-        request = Request(
-            normalized + PERSONAL_DASHBOARD_PATH,
-            headers={"Accept": "application/json"},
-            method="GET",
-        )
-        response = opener(request, timeout=timeout_seconds)
-        with response:
-            length = response.headers.get("Content-Length")
-            if length is not None and int(length) > MAX_SNAPSHOT_BYTES:
-                return None
-            payload = response.read(MAX_SNAPSHOT_BYTES + 1)
-        if len(payload) > MAX_SNAPSHOT_BYTES:
-            return None
-        return PersonalDashboardSnapshot.model_validate(json.loads(payload))
-    except (
-        PublicDashboardUnavailable,
-        HTTPError,
-        URLError,
-        TimeoutError,
-        OSError,
-        ValueError,
-        UnicodeDecodeError,
-        json.JSONDecodeError,
-    ):
-        return None
 
 
 def bucket_rows(

@@ -9,30 +9,9 @@ from dashboard_data import (
     DEFAULT_PUBLIC_API_BASE_URL,
     PublicDashboardUnavailable,
     fetch_dashboard_snapshot,
-    fetch_personal_dashboard_snapshot,
     public_api_base_url,
     snapshot_age_hours,
 )
-
-
-def personal_snapshot_document() -> dict:
-    return {
-        "generated_at": "2026-07-27T12:00:00Z",
-        "data_version": 1,
-        "counts": {
-            "submission_count": 2,
-            "by_form_type": [{"key": "i_765", "count": 2}],
-            "by_status": [{"key": "pending", "count": 2}],
-            "by_filed_month": [{"key": "2026-01", "count": 2}],
-        },
-        "pending_wait_days": {
-            "sample_size": 2,
-            "average_days": 10.0,
-            "median_days": 10.0,
-            "first_quartile_days": 10.0,
-            "third_quartile_days": 10.0,
-        },
-    }
 
 
 def snapshot_document() -> dict:
@@ -176,37 +155,6 @@ class DashboardDataTests(unittest.TestCase):
                 now=snapshot.generated_at - timedelta(hours=1),
             ),
             0.0,
-        )
-
-    def test_personal_dashboard_fetch_returns_snapshot_when_available(self) -> None:
-        snapshot = fetch_personal_dashboard_snapshot(
-            DEFAULT_PUBLIC_API_BASE_URL,
-            opener=lambda *_args, **_kwargs: FakeResponse(
-                personal_snapshot_document()
-            ),
-        )
-
-        self.assertIsNotNone(snapshot)
-        self.assertEqual(snapshot.counts.submission_count, 2)
-
-    def test_personal_dashboard_fetch_returns_none_on_any_failure(self) -> None:
-        def fail(*_args, **_kwargs):
-            raise URLError("private diagnostic")
-
-        self.assertIsNone(
-            fetch_personal_dashboard_snapshot(
-                DEFAULT_PUBLIC_API_BASE_URL,
-                opener=fail,
-            )
-        )
-
-        malformed = personal_snapshot_document()
-        malformed["counts"] = "not an object"
-        self.assertIsNone(
-            fetch_personal_dashboard_snapshot(
-                DEFAULT_PUBLIC_API_BASE_URL,
-                opener=lambda *_args, **_kwargs: FakeResponse(malformed),
-            )
         )
 
 
