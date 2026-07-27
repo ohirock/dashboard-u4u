@@ -44,7 +44,10 @@ st.set_page_config(
     layout="wide",
 )
 
-PERSONAL_DASHBOARD_CACHE_TTL_SECONDS = 30
+# Single shared cadence for every cached data source on this page (the
+# canonical snapshot and the personal-tracking snapshot alike), so there is
+# one consistent number instead of two different ones to reconcile.
+PAGE_DATA_CACHE_TTL_SECONDS = 300
 
 
 def _secret_api_url() -> str | None:
@@ -55,18 +58,22 @@ def _secret_api_url() -> str | None:
     return value if isinstance(value, str) else None
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=PAGE_DATA_CACHE_TTL_SECONDS, show_spinner=False)
 def _load_snapshot(base_url: str):
-    return fetch_dashboard_snapshot(base_url)
+    """Return (snapshot, fetched_at).
 
-
-@st.cache_data(ttl=PERSONAL_DASHBOARD_CACHE_TTL_SECONDS, show_spinner=False)
-def _load_personal_snapshot(base_url: str):
-    """Return (snapshot_or_none, fetched_at) so the UI can show a countdown.
-
-    `fetched_at` is captured once, when this cache entry is populated, so the
-    countdown reflects true cache expiry rather than each viewer's page load.
+    `st.cache_data` is a server-wide cache shared by every visitor, not a
+    per-browser-session value — `fetched_at` is captured once, when this
+    cache entry is (re)populated, so the same value and countdown are seen
+    by all concurrent users and survive any single user's manual refresh.
     """
+
+    return fetch_dashboard_snapshot(base_url), datetime.now(UTC)
+
+
+@st.cache_data(ttl=PAGE_DATA_CACHE_TTL_SECONDS, show_spinner=False)
+def _load_personal_snapshot(base_url: str):
+    """Return (snapshot_or_none, fetched_at); see `_load_snapshot` above."""
 
     snapshot = None if fetch_personal_dashboard_snapshot is None else fetch_personal_dashboard_snapshot(base_url)
     return snapshot, datetime.now(UTC)
@@ -75,26 +82,28 @@ def _load_personal_snapshot(base_url: str):
 def _render_refresh_countdown(fetched_at: datetime) -> None:
     """A purely informational, repeating countdown.
 
-    Communicates the underlying cache's refresh cadence — it never reloads
-    or reruns the page. Reopen the page (or switch tabs) after it reaches
-    zero to see whether new data arrived.
+    Communicates the underlying shared cache's refresh cadence — it never
+    reloads or reruns the page. Reopen the page after it reaches zero to
+    see whether new data arrived. `fetched_at` reflects when the server-wide
+    cache was last populated, so this countdown is identical for every
+    visitor at any given moment, not reset by one user's page reload.
     """
 
-    period_seconds = PERSONAL_DASHBOARD_CACHE_TTL_SECONDS
+    period_seconds = PAGE_DATA_CACHE_TTL_SECONDS
     next_refresh_at = fetched_at + timedelta(seconds=period_seconds)
     components.html(
         f"""
         <div style="font-family:'Source Sans Pro',sans-serif;font-size:0.8rem;
                      color:gray;">
-        New data may be available in
-        <span id="personal-dashboard-countdown">{period_seconds}s</span>
-        — reopen this page to check.
+        Data refresh will happen in
+        <span id="page-data-countdown">{period_seconds}s</span>
+        — reopen this page after that to check.
         </div>
         <script>
         (function() {{
             let target = new Date("{next_refresh_at.isoformat()}").getTime();
             const periodMs = {period_seconds} * 1000;
-            const el = document.getElementById("personal-dashboard-countdown");
+            const el = document.getElementById("page-data-countdown");
             function tick() {{
                 let remaining = Math.round((target - Date.now()) / 1000);
                 while (remaining <= 0) {{
@@ -324,7 +333,7 @@ try:
         os.environ,
         secret_value=_secret_api_url(),
     )
-    snapshot = _load_snapshot(api_base_url)
+    snapshot, canonical_fetched_at = _load_snapshot(api_base_url)
 except PublicDashboardUnavailable as error:
     st.error(str(error))
     st.info(
@@ -332,6 +341,11 @@ except PublicDashboardUnavailable as error:
         "No private case data is stored in this dashboard."
     )
     st.stop()
+
+# Loaded once here (not inside the personal tab) so one global countdown can
+# cover every cached data source on the page, including the personal tab's.
+personal_snapshot, personal_fetched_at = _load_personal_snapshot(api_base_url)
+_render_refresh_countdown(min(canonical_fetched_at, personal_fetched_at))
 
 age_hours = snapshot_age_hours(snapshot)
 freshness = snapshot.generated_at.strftime("%Y-%m-%d %H:%M UTC")
@@ -575,10 +589,8 @@ with personal_tab:
         "tracking bot. No names, comments, receipt numbers, or Telegram "
         "identities are ever included here."
     )
-    personal_snapshot, personal_fetched_at = _load_personal_snapshot(api_base_url)
     if personal_snapshot is None:
         st.info("Community self-tracking aggregates are not available yet.")
-        _render_refresh_countdown(personal_fetched_at)
     else:
         counts = personal_snapshot.counts
         p1, p2 = st.columns(2)
@@ -611,7 +623,6 @@ with personal_tab:
             f"Snapshot generated "
             f"{personal_snapshot.generated_at.strftime('%Y-%m-%d %H:%M UTC')}."
         )
-        _render_refresh_countdown(personal_fetched_at)
 
 st.divider()
 st.subheader("How to interpret this dashboard")
