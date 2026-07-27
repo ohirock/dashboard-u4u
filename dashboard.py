@@ -140,7 +140,10 @@ def _pace_signals(rows) -> pd.DataFrame:
         if not baseline_weight:
             continue
         baseline = (
-            sum((row.duration.median_days or 0) * row.duration.sample_size for row in baseline_rows)
+            sum(
+                (row.duration.median_days or 0) * row.duration.sample_size
+                for row in baseline_rows
+            )
             / baseline_weight
         )
         if baseline <= 0:
@@ -169,7 +172,8 @@ def _expedite_frame(rows) -> pd.DataFrame:
         without_value = row.without_expedite
         difference = (
             with_value.median_days - without_value.median_days
-            if with_value.median_days is not None and without_value.median_days is not None
+            if with_value.median_days is not None
+            and without_value.median_days is not None
             else None
         )
         result.append(
@@ -190,7 +194,11 @@ def _expedite_frame(rows) -> pd.DataFrame:
 
 def _decision_summary(rows, family: str):
     return next(
-        (row.duration for row in rows if row.case_family == family and row.milestone == "decision"),
+        (
+            row.duration
+            for row in rows
+            if row.case_family == family and row.milestone == "decision"
+        ),
         None,
     )
 
@@ -214,7 +222,9 @@ def _decision_heatmap(rows, family: str) -> None:
         st.info(f"No monthly {_label(family)} decision samples are available yet.")
         return
     order = [labels[False], labels[True]]
-    medians = frame.pivot(index="Expedite", columns="Month", values="Median days").reindex(order)
+    medians = frame.pivot(
+        index="Expedite", columns="Month", values="Median days"
+    ).reindex(order)
     samples = frame.pivot(index="Expedite", columns="Month", values="Cases").reindex(
         index=order,
         columns=medians.columns,
@@ -233,7 +243,9 @@ def _decision_heatmap(rows, family: str) -> None:
             ),
         )
     )
-    figure.update_layout(title=title, height=320, margin={"l": 20, "r": 20, "t": 60, "b": 20})
+    figure.update_layout(
+        title=title, height=320, margin={"l": 20, "r": 20, "t": 60, "b": 20}
+    )
     st.plotly_chart(figure, width="stretch")
 
 
@@ -274,8 +286,14 @@ summary_3.metric("Final decisions this month", decisions.current_calendar_month)
 
 st.subheader("Filing to final decision by benefit")
 r1, r2, r3, e1, e2, e3 = st.columns(6)
-r1.metric("Re-parole average", _days(reparole_decision.average_days if reparole_decision else None))
-r2.metric("Re-parole median", _days(reparole_decision.median_days if reparole_decision else None))
+r1.metric(
+    "Re-parole average",
+    _days(reparole_decision.average_days if reparole_decision else None),
+)
+r2.metric(
+    "Re-parole median",
+    _days(reparole_decision.median_days if reparole_decision else None),
+)
 r3.metric("Re-parole cases", reparole_decision.sample_size if reparole_decision else 0)
 e1.metric("EAD average", _days(ead_decision.average_days if ead_decision else None))
 e2.metric("EAD median", _days(ead_decision.median_days if ead_decision else None))
@@ -302,7 +320,9 @@ with speed_tab:
     else:
         preferred = ["TPS", "Re-parole", "EAD"]
         order = {name: index for index, name in enumerate(preferred)}
-        summary["_order"] = summary["Case type"].map(lambda value: order.get(value, len(order)))
+        summary["_order"] = summary["Case type"].map(
+            lambda value: order.get(value, len(order))
+        )
         summary = summary.sort_values(["_order", "Case type", "Milestone"])
         st.dataframe(summary.drop(columns="_order"), hide_index=True, width="stretch")
 
@@ -324,9 +344,13 @@ with speed_tab:
             families,
             index=families.index(default_family),
         )
-        milestones = list(dict.fromkeys(weekly.loc[weekly["Case type"] == family, "Milestone"]))
+        milestones = list(
+            dict.fromkeys(weekly.loc[weekly["Case type"] == family, "Milestone"])
+        )
         milestone = c2.selectbox("Milestone", milestones)
-        selected = weekly[(weekly["Case type"] == family) & (weekly["Milestone"] == milestone)]
+        selected = weekly[
+            (weekly["Case type"] == family) & (weekly["Milestone"] == milestone)
+        ]
         trend = selected.melt(
             id_vars=["Week", "Cases"],
             value_vars=["Average days", "Median days"],
@@ -408,10 +432,15 @@ with expedite_tab:
     else:
         st.dataframe(comparison, hide_index=True, width="stretch")
     heatmap_left, heatmap_right = st.columns(2)
+    monthly_decision_durations = getattr(
+        metrics,
+        "monthly_decision_durations",
+        (),
+    )
     with heatmap_left:
-        _decision_heatmap(metrics.monthly_decision_durations, "re_parole")
+        _decision_heatmap(monthly_decision_durations, "re_parole")
     with heatmap_right:
-        _decision_heatmap(metrics.monthly_decision_durations, "ead")
+        _decision_heatmap(monthly_decision_durations, "ead")
     st.caption(
         "Each cell is the median time from the reported initial filing date to a final "
         "approval or denial, grouped by decision month. Empty cells have no complete sample."
@@ -437,7 +466,9 @@ with quality_tab:
     q3.metric("Unknown form", quality.unknown_form_count)
     q4.metric("Unknown status", quality.unknown_status_count)
     review_total = metrics.historic_pending_count + metrics.historic_reviewed_count
-    review_percent = metrics.historic_reviewed_count / review_total * 100 if review_total else 0.0
+    review_percent = (
+        metrics.historic_reviewed_count / review_total * 100 if review_total else 0.0
+    )
     st.metric("Historic review complete", f"{review_percent:.1f}%")
     quality_rows = pd.DataFrame(
         [
