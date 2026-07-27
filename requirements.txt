@@ -1,3 +1,4 @@
+# Public dashboard schema v2 (heatmap aggregates)
 streamlit>=1.50,<2
 pandas>=2.2,<4
 plotly>=6,<7

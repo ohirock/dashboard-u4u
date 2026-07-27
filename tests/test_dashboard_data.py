@@ -96,12 +96,24 @@ class DashboardDataTests(unittest.TestCase):
         with self.assertRaises(PublicDashboardUnavailable):
             public_api_base_url({"U4U_PUBLIC_API_BASE_URL": "http://example.com"})
         with self.assertRaises(PublicDashboardUnavailable):
-            public_api_base_url({"U4U_PUBLIC_API_BASE_URL": "https://user:pass@example.com"})
+            public_api_base_url(
+                {"U4U_PUBLIC_API_BASE_URL": "https://user:pass@example.com"}
+            )
 
     def test_fetches_and_strictly_validates_aggregate_snapshot(self) -> None:
+        requests = []
+
+        def opener(request, **_kwargs):
+            requests.append(request)
+            return FakeResponse(snapshot_document())
+
         snapshot = fetch_dashboard_snapshot(
             DEFAULT_PUBLIC_API_BASE_URL,
-            opener=lambda *_args, **_kwargs: FakeResponse(snapshot_document()),
+            opener=opener,
+        )
+        self.assertEqual(
+            requests[0].get_header("X-u4u-dashboard-schema"),
+            "2",
         )
         self.assertEqual(snapshot.metrics.report_count, 1)
         invalid = snapshot_document()

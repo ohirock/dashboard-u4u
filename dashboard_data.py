@@ -149,7 +149,9 @@ def public_api_base_url(
     """Resolve and validate the public API origin without credentials."""
 
     value = (
-        secret_value or environment.get(PUBLIC_API_URL_ENV, "") or DEFAULT_PUBLIC_API_BASE_URL
+        secret_value
+        or environment.get(PUBLIC_API_URL_ENV, "")
+        or DEFAULT_PUBLIC_API_BASE_URL
     ).strip()
     parts = urlsplit(value)
     if (
@@ -183,7 +185,10 @@ def fetch_dashboard_snapshot(
         raise ValueError("timeout_seconds must be greater than 0 and at most 30")
     request = Request(
         normalized + DASHBOARD_PATH,
-        headers={"Accept": "application/json"},
+        headers={
+            "Accept": "application/json",
+            "X-U4U-Dashboard-Schema": "2",
+        },
         method="GET",
     )
     try:
@@ -203,14 +208,18 @@ def fetch_dashboard_snapshot(
             "The dashboard snapshot is temporarily unavailable."
         ) from None
     except (URLError, TimeoutError, OSError, ValueError):
-        raise PublicDashboardUnavailable("The dashboard API could not be reached.") from None
+        raise PublicDashboardUnavailable(
+            "The dashboard API could not be reached."
+        ) from None
     if len(payload) > MAX_SNAPSHOT_BYTES:
         raise PublicDashboardUnavailable("The dashboard snapshot is too large.")
     try:
         document = json.loads(payload)
         return DashboardSnapshot.model_validate(document)
     except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
-        raise PublicDashboardUnavailable("The dashboard snapshot failed validation.") from None
+        raise PublicDashboardUnavailable(
+            "The dashboard snapshot failed validation."
+        ) from None
 
 
 def bucket_rows(
@@ -231,5 +240,8 @@ def snapshot_age_hours(
         raise ValueError("now must include timezone information")
     return max(
         0.0,
-        (current.astimezone(UTC) - snapshot.generated_at.astimezone(UTC)).total_seconds() / 3600,
+        (
+            current.astimezone(UTC) - snapshot.generated_at.astimezone(UTC)
+        ).total_seconds()
+        / 3600,
     )
