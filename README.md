@@ -25,6 +25,22 @@ Multi-person reports are weighted by their reviewed `reported_case_count`.
 Weekly trend output is bounded to the latest 104 populated weeks per case-family
 and milestone combination. Expedite comparisons are descriptive correlation,
 not a causal estimate.
+
+## Community self-tracking tab
+
+A fifth, independent tab shows anonymized, aggregate-only counts from the
+separate personal tracking Telegram bot (submission counts by form type,
+status, and filing month, plus pending-wait-days). It is fed by its own
+endpoint, `/api/public/personal-dashboard`, entirely separate from the
+canonical `/api/public/dashboard` snapshot above — no raw comments,
+Telegram identities, or other private fields ever leave the personal-bot's
+private MongoDB collection. If the personal bot's storage feature flag is
+disabled, this tab shows "not available yet" without affecting the rest of
+the page. Its underlying cache refreshes every 30 seconds, rather than the
+5-minute cache used elsewhere, and a countdown communicates that cadence.
+The countdown is purely informational — it never reloads or reruns the
+page; reopen the page after it reaches zero to see whether new data
+arrived.
 ## Run locally
 
 ```powershell
