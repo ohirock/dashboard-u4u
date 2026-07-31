@@ -8,6 +8,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 import streamlit.components.v1 as components
+from plotly.subplots import make_subplots
 from streamlit.errors import StreamlitSecretNotFoundError
 
 try:
@@ -241,6 +242,178 @@ def _pace_signals(rows) -> pd.DataFrame:
     return pd.DataFrame(signals)
 
 
+def _rolling_pace_signal(
+    values: list[float | None],
+    weights: list[float],
+    *,
+    baseline_window: int = 4,
+    threshold_percent: float = 15,
+) -> list[tuple[str | None, float | None]]:
+    """Per-point Slower/Faster/Stable vs. the weighted average of up to
+    `baseline_window` preceding points. (None, None) where there isn't yet
+    enough baseline to compare against.
+    """
+    results: list[tuple[str | None, float | None]] = []
+    for index, value in enumerate(values):
+        baseline_values = values[max(0, index - baseline_window) : index]
+        baseline_weights = weights[max(0, index - baseline_window) : index]
+        baseline_weight = sum(
+            weight
+            for weight, baseline_value in zip(baseline_weights, baseline_values)
+            if baseline_value is not None
+        )
+        if value is None or not baseline_weight:
+            results.append((None, None))
+            continue
+        baseline = (
+            sum(
+                (baseline_value or 0) * weight
+                for weight, baseline_value in zip(baseline_weights, baseline_values)
+            )
+            / baseline_weight
+        )
+        if baseline <= 0:
+            results.append((None, None))
+            continue
+        change = (value - baseline) / baseline * 100
+        signal = (
+            "Slower"
+            if change > threshold_percent
+            else "Faster"
+            if change < -threshold_percent
+            else "Stable"
+        )
+        results.append((signal, change))
+    return results
+
+
+def _decision_series(weekly_rows, family: str, *, monthly: bool) -> pd.DataFrame:
+    """Filing-to-decision volume and duration for one case family.
+
+    Monthly points are a `Cases`-weighted average of the underlying weekly
+    `average_days` (medians of medians would be wrong to combine); weekly
+    points use the exact weekly median directly.
+    """
+    filtered = [
+        row
+        for row in weekly_rows
+        if row.case_family == family and row.milestone == "decision" and row.duration.sample_size
+    ]
+    if not filtered:
+        return pd.DataFrame(columns=["Period", "Cases", "Days"])
+    if not monthly:
+        frame = pd.DataFrame(
+            [
+                {
+                    "Period": row.week_start,
+                    "Cases": row.duration.sample_size,
+                    "Days": row.duration.median_days,
+                }
+                for row in filtered
+            ]
+        )
+        return frame.sort_values("Period").reset_index(drop=True)
+    raw = pd.DataFrame(
+        [
+            {
+                "Period": pd.Timestamp(row.week_start).to_period("M").to_timestamp(),
+                "Cases": row.duration.sample_size,
+                "WeightedDays": (row.duration.average_days or 0) * row.duration.sample_size,
+            }
+            for row in filtered
+        ]
+    )
+    grouped = raw.groupby("Period", as_index=False).agg(
+        Cases=("Cases", "sum"), WeightedDays=("WeightedDays", "sum")
+    )
+    grouped["Days"] = grouped["WeightedDays"] / grouped["Cases"]
+    return grouped.drop(columns="WeightedDays").sort_values("Period").reset_index(drop=True)
+
+
+def _decision_combo_chart(
+    frame: pd.DataFrame,
+    *,
+    title: str,
+    duration_label: str,
+) -> pd.DataFrame | None:
+    """Render a volume+duration combo chart with spikes marked on the line.
+
+    Returns a table of flagged (Slower/Faster) periods for the caller to fold
+    into a shared summary table, or `None` when there's nothing to flag.
+    """
+    if frame.empty:
+        st.info(f"No recent decision samples are available yet for {title}.")
+        return None
+    signals = _rolling_pace_signal(list(frame["Days"]), list(frame["Cases"]))
+    figure = make_subplots(specs=[[{"secondary_y": True}]])
+    figure.add_bar(
+        x=frame["Period"], y=frame["Cases"], name="Decisions", opacity=0.35, secondary_y=False
+    )
+    figure.add_scatter(
+        x=frame["Period"],
+        y=frame["Days"],
+        name=duration_label,
+        mode="lines+markers",
+        secondary_y=True,
+    )
+    marker_style = {
+        "Slower": {"color": "#d62728", "symbol": "triangle-up"},
+        "Faster": {"color": "#2ca02c", "symbol": "triangle-down"},
+    }
+    flagged_rows = []
+    for signal_name, style in marker_style.items():
+        points = [
+            (period, days, change)
+            for period, days, (signal, change) in zip(frame["Period"], frame["Days"], signals)
+            if signal == signal_name
+        ]
+        if not points:
+            continue
+        xs, ys, changes = zip(*points)
+        figure.add_scatter(
+            x=list(xs),
+            y=list(ys),
+            mode="markers",
+            name=signal_name,
+            marker={**style, "size": 12},
+            secondary_y=True,
+        )
+        flagged_rows.extend(
+            {
+                "Period": period,
+                "Days": days,
+                "Signal": signal_name,
+                "Change": f"{change:+.0f}%",
+            }
+            for period, days, change in zip(xs, ys, changes)
+        )
+    figure.update_layout(
+        title=title,
+        height=320,
+        margin={"l": 10, "r": 10, "t": 50, "b": 10},
+        legend={"orientation": "h"},
+    )
+    figure.update_yaxes(title_text="Decisions", secondary_y=False)
+    figure.update_yaxes(title_text=duration_label, secondary_y=True)
+    st.plotly_chart(figure, width="stretch")
+    if not flagged_rows:
+        return None
+    return pd.DataFrame(flagged_rows).sort_values("Period")
+
+
+def _filed_cohort_frame(cohorts) -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "Filed month": row.filed_month.strftime("%Y-%m"),
+                "Case type": _label(row.case_family),
+                "Count": row.count,
+            }
+            for row in sorted(cohorts, key=lambda row: row.filed_month)
+        ]
+    )
+
+
 def _expedite_frame(rows) -> pd.DataFrame:
     result = []
     for row in rows:
@@ -397,6 +570,69 @@ with speed_tab:
     d2.metric("Previous calendar week", decisions.previous_calendar_week)
     d3.metric("Current week", decisions.current_calendar_week)
     d4.metric("Current month", decisions.current_calendar_month)
+
+    st.subheader("Recent pace by case type")
+    st.caption(
+        "Bars are decision volume, the line is processing time. Triangles mark "
+        "periods that moved more than 15% from the trailing average of up to "
+        "four prior periods."
+    )
+    granularity = st.radio(
+        "Granularity", ["Monthly", "Weekly"], horizontal=True, key="pace_granularity"
+    )
+    use_monthly = granularity == "Monthly"
+    duration_label = "Average days (weighted)" if use_monthly else "Median days"
+    if use_monthly:
+        st.caption(
+            "Monthly points are a decision-count-weighted average of the weekly "
+            "figures (medians can't be correctly re-derived from other medians). "
+            "Switch to Weekly for exact medians."
+        )
+    families = ["tps", "re_parole", "ead"]
+    pace_columns = st.columns(len(families))
+    flagged_frames = []
+    for family, pace_column in zip(families, pace_columns):
+        series = _decision_series(
+            metrics.weekly_milestone_durations, family, monthly=use_monthly
+        )
+        with pace_column:
+            flagged = _decision_combo_chart(
+                series, title=_label(family), duration_label=duration_label
+            )
+        if flagged is not None:
+            flagged = flagged.copy()
+            flagged.insert(0, "Case type", _label(family))
+            flagged_frames.append(flagged)
+    if flagged_frames:
+        st.caption("Flagged periods, exact figures:")
+        st.dataframe(
+            pd.concat(flagged_frames, ignore_index=True), hide_index=True, width="stretch"
+        )
+
+    st.subheader("Which filing vintage is being approved right now")
+    cohort_frame = _filed_cohort_frame(metrics.recent_decision_filed_cohorts)
+    if cohort_frame.empty:
+        st.info(
+            "Not enough recent decisions are available yet to show a filing-month "
+            "breakdown."
+        )
+    else:
+        month_order = list(dict.fromkeys(cohort_frame["Filed month"]))
+        figure = px.bar(
+            cohort_frame,
+            x="Filed month",
+            y="Count",
+            color="Case type",
+            barmode="group",
+            category_orders={"Filed month": month_order},
+            title="Filed month of cases decided in the last 90 days",
+        )
+        st.plotly_chart(figure, width="stretch")
+    st.caption(
+        "This shows when currently-decided cases were originally filed. It is "
+        "not an approval-rate or success metric — it doesn't account for cases "
+        "filed in the same month that are still pending."
+    )
 
     summary = _milestone_frame(metrics.milestone_durations)
     if not summary.empty:

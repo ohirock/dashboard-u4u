@@ -1,4 +1,4 @@
-# Public dashboard schema v2 (heatmap aggregates)
+# Public dashboard schema v3 (recent filed-cohort aggregates)
 streamlit>=1.50,<2
 pandas>=2.2,<4
 plotly>=6,<7
