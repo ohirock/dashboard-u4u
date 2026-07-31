@@ -641,6 +641,16 @@ with speed_tab:
             title=chart_title,
         )
         st.plotly_chart(figure, width="stretch")
+        family_totals: dict[str, int] = {}
+        for row in windowed_cohorts:
+            family_totals[row.case_family] = family_totals.get(row.case_family, 0) + row.count
+        ordered_families = [family for family in ("tps", "re_parole", "ead") if family in family_totals]
+        total_columns = st.columns(len(ordered_families))
+        for column, family in zip(total_columns, ordered_families):
+            column.metric(
+                t("metric_filed_cohort_total", case_type=_label(family)),
+                family_totals[family],
+            )
     st.caption(t("caption_filed_cohort"))
 
     summary = _milestone_frame(metrics.milestone_durations)
