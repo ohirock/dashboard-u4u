@@ -611,9 +611,14 @@ with speed_tab:
         format_func=window_label,
         key="filed_cohort_window",
     )
+    recent_decision_filed_cohorts_by_window = getattr(
+        metrics,
+        "recent_decision_filed_cohorts_by_window",
+        (),
+    )
     windowed_cohorts = [
         row
-        for row in metrics.recent_decision_filed_cohorts_by_window
+        for row in recent_decision_filed_cohorts_by_window
         if row.window == selected_window
     ]
     cohort_frame = _filed_cohort_frame(windowed_cohorts)
