@@ -67,20 +67,32 @@ def window_label(window_key: str) -> str:
 
 
 # Order matters: the dropdown is offered in this sequence.
-WINDOW_ORDER: tuple[str, ...] = ("week", "month", "3month", "year", "all_time")
+WINDOW_ORDER: tuple[str, ...] = (
+    "week",
+    "2weeks",
+    "month",
+    "3month",
+    "6month",
+    "year",
+    "all_time",
+)
 
 _WINDOW_LABELS: dict[str, dict[str, str]] = {
     "en": {
         "week": "Last week",
+        "2weeks": "Last 2 weeks",
         "month": "Last month",
         "3month": "Last 3 months",
+        "6month": "Last 6 months",
         "year": "Last year",
         "all_time": "All time",
     },
     "uk": {
         "week": "Останній тиждень",
+        "2weeks": "Останні 2 тижні",
         "month": "Останній місяць",
         "3month": "Останні 3 місяці",
+        "6month": "Останні 6 місяців",
         "year": "Останній рік",
         "all_time": "За весь час",
     },
