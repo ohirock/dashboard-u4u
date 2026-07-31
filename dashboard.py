@@ -39,6 +39,8 @@ except ImportError:
     except ImportError:
         fetch_personal_dashboard_snapshot = None
 
+from i18n import WINDOW_ORDER, label, render_language_selector, t, window_label
+
 st.set_page_config(
     page_title="USCIS Community Case Tracker",
     page_icon="📊",
@@ -96,9 +98,9 @@ def _render_refresh_countdown(fetched_at: datetime) -> None:
         f"""
         <div style="font-family:'Source Sans Pro',sans-serif;font-size:0.8rem;
                      color:gray;">
-        Data refresh will happen in
+        {t("refresh_countdown_before")}
         <span id="page-data-countdown">{period_seconds}s</span>
-        — reopen this page after that to check.
+        {t("refresh_countdown_after")}
         </div>
         <script>
         (function() {{
@@ -123,29 +125,15 @@ def _render_refresh_countdown(fetched_at: datetime) -> None:
 
 
 def _label(value: str) -> str:
-    special = {
-        "i_131": "I-131",
-        "i_765": "I-765",
-        "i_485": "I-485",
-        "i_130": "I-130",
-        "i_140": "I-140",
-        "tps": "TPS",
-        "ead": "EAD",
-        "re_parole": "Re-parole",
-        "u4u_initial": "U4U initial parole",
-        "u4u_reparole": "U4U re-parole",
-        "pre_approval": "Pre-approval",
-        "biometrics": "Biometrics",
-        "approval": "Approval",
-        "decision": "Final decision",
-        "adjustment_of_status": "Adjustment of status",
-    }
-    return special.get(value, value.replace("_", " ").title())
+    return label(value)
 
 
 def _frame(buckets, key_label):
     frame = pd.DataFrame(bucket_rows(buckets, key_label=key_label))
-    if not frame.empty and key_label not in {"Reported month", "Decision month"}:
+    if frame.empty:
+        return frame
+    frame = frame.rename(columns={"Count": t("column_count")})
+    if key_label not in {t("column_reported_month"), t("column_decision_month")}:
         frame[key_label] = frame[key_label].map(_label)
     return frame
 
@@ -153,12 +141,12 @@ def _frame(buckets, key_label):
 def _bar(buckets, *, key_label, title, horizontal=False):
     frame = _frame(buckets, key_label)
     if frame.empty:
-        st.info("No data is available for this breakdown yet.")
+        st.info(t("info_no_breakdown_data"))
         return
     figure = px.bar(
         frame,
-        x="Count" if horizontal else key_label,
-        y=key_label if horizontal else "Count",
+        x=t("column_count") if horizontal else key_label,
+        y=key_label if horizontal else t("column_count"),
         orientation="h" if horizontal else "v",
         title=title,
     )
@@ -166,20 +154,20 @@ def _bar(buckets, *, key_label, title, horizontal=False):
 
 
 def _days(value: float | None) -> str:
-    return f"{value:.0f} days" if value is not None else "Not available"
+    return t("days_value", value=value) if value is not None else t("days_not_available")
 
 
 def _milestone_frame(rows) -> pd.DataFrame:
     return pd.DataFrame(
         [
             {
-                "Case type": _label(row.case_family),
-                "Milestone": _label(row.milestone),
-                "Average days": row.duration.average_days,
-                "Median days": row.duration.median_days,
-                "25th percentile": row.duration.first_quartile_days,
-                "75th percentile": row.duration.third_quartile_days,
-                "Cases": row.duration.sample_size,
+                t("column_case_type"): _label(row.case_family),
+                t("column_milestone"): _label(row.milestone),
+                t("column_average_days"): row.duration.average_days,
+                t("column_median_days"): row.duration.median_days,
+                t("column_first_quartile"): row.duration.first_quartile_days,
+                t("column_third_quartile"): row.duration.third_quartile_days,
+                t("column_cases"): row.duration.sample_size,
             }
             for row in rows
         ]
@@ -190,12 +178,12 @@ def _weekly_frame(rows) -> pd.DataFrame:
     return pd.DataFrame(
         [
             {
-                "Week": row.week_start,
-                "Case type": _label(row.case_family),
-                "Milestone": _label(row.milestone),
-                "Average days": row.duration.average_days,
-                "Median days": row.duration.median_days,
-                "Cases": row.duration.sample_size,
+                t("column_week"): row.week_start,
+                t("column_case_type"): _label(row.case_family),
+                t("column_milestone"): _label(row.milestone),
+                t("column_average_days"): row.duration.average_days,
+                t("column_median_days"): row.duration.median_days,
+                t("column_cases"): row.duration.sample_size,
             }
             for row in rows
         ]
@@ -226,17 +214,23 @@ def _pace_signals(rows) -> pd.DataFrame:
         if baseline <= 0:
             continue
         change = ((latest.duration.median_days or 0) - baseline) / baseline * 100
-        signal = "Slower" if change > 15 else "Faster" if change < -15 else "Stable"
+        signal = (
+            t("signal_slower")
+            if change > 15
+            else t("signal_faster")
+            if change < -15
+            else t("signal_stable")
+        )
         signals.append(
             {
-                "Case type": _label(family),
-                "Milestone": _label(milestone),
-                "Latest week": latest.week_start,
-                "Latest median": latest.duration.median_days,
-                "Prior-week baseline": baseline,
-                "Change": f"{change:+.0f}%",
-                "Signal": signal,
-                "Latest cases": latest.duration.sample_size,
+                t("column_case_type"): _label(family),
+                t("column_milestone"): _label(milestone),
+                t("column_latest_week"): latest.week_start,
+                t("column_latest_median"): latest.duration.median_days,
+                t("column_prior_baseline"): baseline,
+                t("column_change"): f"{change:+.0f}%",
+                t("column_signal"): signal,
+                t("column_latest_cases"): latest.duration.sample_size,
             }
         )
     return pd.DataFrame(signals)
@@ -277,11 +271,11 @@ def _rolling_pace_signal(
             continue
         change = (value - baseline) / baseline * 100
         signal = (
-            "Slower"
+            t("signal_slower")
             if change > threshold_percent
-            else "Faster"
+            else t("signal_faster")
             if change < -threshold_percent
-            else "Stable"
+            else t("signal_stable")
         )
         results.append((signal, change))
     return results
@@ -342,12 +336,16 @@ def _decision_combo_chart(
     into a shared summary table, or `None` when there's nothing to flag.
     """
     if frame.empty:
-        st.info(f"No recent decision samples are available yet for {title}.")
+        st.info(t("no_recent_decisions_for", title=title))
         return None
     signals = _rolling_pace_signal(list(frame["Days"]), list(frame["Cases"]))
     figure = make_subplots(specs=[[{"secondary_y": True}]])
     figure.add_bar(
-        x=frame["Period"], y=frame["Cases"], name="Decisions", opacity=0.35, secondary_y=False
+        x=frame["Period"],
+        y=frame["Cases"],
+        name=t("decisions_series_name"),
+        opacity=0.35,
+        secondary_y=False,
     )
     figure.add_scatter(
         x=frame["Period"],
@@ -357,8 +355,8 @@ def _decision_combo_chart(
         secondary_y=True,
     )
     marker_style = {
-        "Slower": {"color": "#d62728", "symbol": "triangle-up"},
-        "Faster": {"color": "#2ca02c", "symbol": "triangle-down"},
+        t("signal_slower"): {"color": "#d62728", "symbol": "triangle-up"},
+        t("signal_faster"): {"color": "#2ca02c", "symbol": "triangle-down"},
     }
     flagged_rows = []
     for signal_name, style in marker_style.items():
@@ -380,10 +378,10 @@ def _decision_combo_chart(
         )
         flagged_rows.extend(
             {
-                "Period": period,
-                "Days": days,
-                "Signal": signal_name,
-                "Change": f"{change:+.0f}%",
+                t("column_period"): period,
+                t("column_days"): days,
+                t("column_signal"): signal_name,
+                t("column_change"): f"{change:+.0f}%",
             }
             for period, days, change in zip(xs, ys, changes)
         )
@@ -393,21 +391,21 @@ def _decision_combo_chart(
         margin={"l": 10, "r": 10, "t": 50, "b": 10},
         legend={"orientation": "h"},
     )
-    figure.update_yaxes(title_text="Decisions", secondary_y=False)
+    figure.update_yaxes(title_text=t("yaxis_decisions"), secondary_y=False)
     figure.update_yaxes(title_text=duration_label, secondary_y=True)
     st.plotly_chart(figure, width="stretch")
     if not flagged_rows:
         return None
-    return pd.DataFrame(flagged_rows).sort_values("Period")
+    return pd.DataFrame(flagged_rows).sort_values(t("column_period"))
 
 
 def _filed_cohort_frame(cohorts) -> pd.DataFrame:
     return pd.DataFrame(
         [
             {
-                "Filed month": row.filed_month.strftime("%Y-%m"),
-                "Case type": _label(row.case_family),
-                "Count": row.count,
+                t("column_filed_month"): row.filed_month.strftime("%Y-%m"),
+                t("column_case_type"): _label(row.case_family),
+                t("column_count"): row.count,
             }
             for row in sorted(cohorts, key=lambda row: row.filed_month)
         ]
@@ -427,15 +425,15 @@ def _expedite_frame(rows) -> pd.DataFrame:
         )
         result.append(
             {
-                "Case type": _label(row.case_family),
-                "Milestone": _label(row.milestone),
-                "Expedite median": with_value.median_days,
-                "Expedite average": with_value.average_days,
-                "Expedite cases": with_value.sample_size,
-                "No expedite median": without_value.median_days,
-                "No expedite average": without_value.average_days,
-                "No expedite cases": without_value.sample_size,
-                "Median difference": difference,
+                t("column_case_type"): _label(row.case_family),
+                t("column_milestone"): _label(row.milestone),
+                t("column_expedite_median"): with_value.median_days,
+                t("column_expedite_average"): with_value.average_days,
+                t("column_expedite_cases"): with_value.sample_size,
+                t("column_no_expedite_median"): without_value.median_days,
+                t("column_no_expedite_average"): without_value.average_days,
+                t("column_no_expedite_cases"): without_value.sample_size,
+                t("column_median_difference"): difference,
             }
         )
     return pd.DataFrame(result)
@@ -453,7 +451,7 @@ def _decision_summary(rows, family: str):
 
 
 def _decision_heatmap(rows, family: str) -> None:
-    labels = {False: "No reported expedite", True: "Reported expedite"}
+    labels = {False: t("heatmap_no_expedite"), True: t("heatmap_expedite")}
     frame = pd.DataFrame(
         [
             {
@@ -466,9 +464,9 @@ def _decision_heatmap(rows, family: str) -> None:
             if row.case_family == family
         ]
     )
-    title = f"{_label(family)} filing-to-final-decision speed"
+    title = t("heatmap_title", family=_label(family))
     if frame.empty:
-        st.info(f"No monthly {_label(family)} decision samples are available yet.")
+        st.info(t("heatmap_no_samples", family=_label(family)))
         return
     order = [labels[False], labels[True]]
     medians = frame.pivot(
@@ -485,11 +483,8 @@ def _decision_heatmap(rows, family: str) -> None:
             y=list(medians.index),
             customdata=samples.to_numpy(),
             colorscale="RdYlGn_r",
-            colorbar={"title": "Median days"},
-            hovertemplate=(
-                "Decision month: %{x}<br>%{y}<br>Median: %{z:.0f} days"
-                "<br>Cases: %{customdata}<extra></extra>"
-            ),
+            colorbar={"title": t("heatmap_colorbar_title")},
+            hovertemplate=t("heatmap_hovertemplate"),
         )
     )
     figure.update_layout(
@@ -498,8 +493,12 @@ def _decision_heatmap(rows, family: str) -> None:
     st.plotly_chart(figure, width="stretch")
 
 
-st.title("USCIS Community Case Tracker")
-st.caption("Processing-time trends from human-reviewed, self-reported case updates.")
+_lang_col, _ = st.columns([1, 5])
+with _lang_col:
+    render_language_selector()
+
+st.title(t("title"))
+st.caption(t("subtitle"))
 
 try:
     api_base_url = public_api_base_url(
@@ -509,10 +508,7 @@ try:
     snapshot, canonical_fetched_at = _load_snapshot(api_base_url)
 except PublicDashboardUnavailable as error:
     st.error(str(error))
-    st.info(
-        "The public aggregate service is temporarily unavailable. "
-        "No private case data is stored in this dashboard."
-    )
+    st.info(t("api_unavailable_info"))
     st.stop()
 
 # Loaded once here (not inside the personal tab) so one global countdown can
@@ -523,9 +519,9 @@ _render_refresh_countdown(min(canonical_fetched_at, personal_fetched_at))
 age_hours = snapshot_age_hours(snapshot)
 freshness = snapshot.generated_at.strftime("%Y-%m-%d %H:%M UTC")
 if age_hours > 24:
-    st.warning(f"The latest snapshot is {age_hours:.0f} hours old ({freshness}).")
+    st.warning(t("snapshot_stale", hours=age_hours, freshness=freshness))
 else:
-    st.caption(f"Snapshot {snapshot.data_version} generated {freshness}.")
+    st.caption(t("snapshot_fresh", version=snapshot.data_version, freshness=freshness))
 
 metrics = snapshot.metrics
 quality = snapshot.quality
@@ -534,60 +530,57 @@ reparole_decision = _decision_summary(metrics.milestone_durations, "re_parole")
 ead_decision = _decision_summary(metrics.milestone_durations, "ead")
 
 summary_1, summary_2, summary_3 = st.columns(3)
-summary_1.metric("Case observations", metrics.case_observation_count)
-summary_2.metric("Final decisions this week", decisions.current_calendar_week)
-summary_3.metric("Final decisions this month", decisions.current_calendar_month)
+summary_1.metric(t("metric_case_observations"), metrics.case_observation_count)
+summary_2.metric(t("metric_decisions_this_week"), decisions.current_calendar_week)
+summary_3.metric(t("metric_decisions_this_month"), decisions.current_calendar_month)
 
-st.subheader("Filing to final decision by benefit")
+st.subheader(t("subheader_filing_to_decision"))
 r1, r2, r3, e1, e2, e3 = st.columns(6)
 r1.metric(
-    "Re-parole average",
+    t("metric_reparole_average"),
     _days(reparole_decision.average_days if reparole_decision else None),
 )
 r2.metric(
-    "Re-parole median",
+    t("metric_reparole_median"),
     _days(reparole_decision.median_days if reparole_decision else None),
 )
-r3.metric("Re-parole cases", reparole_decision.sample_size if reparole_decision else 0)
-e1.metric("EAD average", _days(ead_decision.average_days if ead_decision else None))
-e2.metric("EAD median", _days(ead_decision.median_days if ead_decision else None))
-e3.metric("EAD cases", ead_decision.sample_size if ead_decision else 0)
+r3.metric(t("metric_reparole_cases"), reparole_decision.sample_size if reparole_decision else 0)
+e1.metric(t("metric_ead_average"), _days(ead_decision.average_days if ead_decision else None))
+e2.metric(t("metric_ead_median"), _days(ead_decision.median_days if ead_decision else None))
+e3.metric(t("metric_ead_cases"), ead_decision.sample_size if ead_decision else 0)
 
 speed_tab, cases_tab, expedite_tab, quality_tab, personal_tab = st.tabs(
     (
-        "Processing speed",
-        "Cases",
-        "Expedite impact",
-        "Data quality",
-        "Community self-tracking",
+        t("tab_speed"),
+        t("tab_cases"),
+        t("tab_expedite"),
+        t("tab_quality"),
+        t("tab_personal"),
     )
 )
 
 with speed_tab:
-    st.subheader("Recent final decisions")
+    st.subheader(t("subheader_recent_decisions"))
     d1, d2, d3, d4 = st.columns(4)
-    d1.metric("Last 7 days", decisions.last_7_days)
-    d2.metric("Previous calendar week", decisions.previous_calendar_week)
-    d3.metric("Current week", decisions.current_calendar_week)
-    d4.metric("Current month", decisions.current_calendar_month)
+    d1.metric(t("metric_last_7_days"), decisions.last_7_days)
+    d2.metric(t("metric_previous_calendar_week"), decisions.previous_calendar_week)
+    d3.metric(t("metric_current_week"), decisions.current_calendar_week)
+    d4.metric(t("metric_current_month"), decisions.current_calendar_month)
 
-    st.subheader("Recent pace by case type")
-    st.caption(
-        "Bars are decision volume, the line is processing time. Triangles mark "
-        "periods that moved more than 15% from the trailing average of up to "
-        "four prior periods."
-    )
+    st.subheader(t("subheader_recent_pace"))
+    st.caption(t("caption_recent_pace"))
     granularity = st.radio(
-        "Granularity", ["Monthly", "Weekly"], horizontal=True, key="pace_granularity"
+        t("granularity_label"),
+        [t("granularity_monthly"), t("granularity_weekly")],
+        horizontal=True,
+        key="pace_granularity",
     )
-    use_monthly = granularity == "Monthly"
-    duration_label = "Average days (weighted)" if use_monthly else "Median days"
+    use_monthly = granularity == t("granularity_monthly")
+    duration_label = (
+        t("duration_label_weighted") if use_monthly else t("duration_label_median")
+    )
     if use_monthly:
-        st.caption(
-            "Monthly points are a decision-count-weighted average of the weekly "
-            "figures (medians can't be correctly re-derived from other medians). "
-            "Switch to Weekly for exact medians."
-        )
+        st.caption(t("caption_monthly_weighted"))
     families = ["tps", "re_parole", "ead"]
     pace_columns = st.columns(len(families))
     flagged_frames = []
@@ -601,123 +594,134 @@ with speed_tab:
             )
         if flagged is not None:
             flagged = flagged.copy()
-            flagged.insert(0, "Case type", _label(family))
+            flagged.insert(0, t("column_case_type"), _label(family))
             flagged_frames.append(flagged)
     if flagged_frames:
-        st.caption("Flagged periods, exact figures:")
+        st.caption(t("caption_flagged_periods"))
         st.dataframe(
             pd.concat(flagged_frames, ignore_index=True), hide_index=True, width="stretch"
         )
 
-    st.subheader("Which filing vintage is being approved right now")
-    cohort_frame = _filed_cohort_frame(metrics.recent_decision_filed_cohorts)
+    st.subheader(t("subheader_filed_vintage"))
+    window_options = list(WINDOW_ORDER)
+    selected_window = st.selectbox(
+        t("window_label"),
+        window_options,
+        index=window_options.index("3month"),
+        format_func=window_label,
+        key="filed_cohort_window",
+    )
+    windowed_cohorts = [
+        row
+        for row in metrics.recent_decision_filed_cohorts_by_window
+        if row.window == selected_window
+    ]
+    cohort_frame = _filed_cohort_frame(windowed_cohorts)
     if cohort_frame.empty:
-        st.info(
-            "Not enough recent decisions are available yet to show a filing-month "
-            "breakdown."
-        )
+        st.info(t("info_no_filed_cohort"))
     else:
-        month_order = list(dict.fromkeys(cohort_frame["Filed month"]))
+        month_order = list(dict.fromkeys(cohort_frame[t("column_filed_month")]))
+        chart_title = (
+            t("chart_title_filed_cohort_all_time")
+            if selected_window == "all_time"
+            else t("chart_title_filed_cohort", window=window_label(selected_window).lower())
+        )
         figure = px.bar(
             cohort_frame,
-            x="Filed month",
-            y="Count",
-            color="Case type",
+            x=t("column_filed_month"),
+            y=t("column_count"),
+            color=t("column_case_type"),
             barmode="group",
-            category_orders={"Filed month": month_order},
-            title="Filed month of cases decided in the last 90 days",
+            category_orders={t("column_filed_month"): month_order},
+            title=chart_title,
         )
         st.plotly_chart(figure, width="stretch")
-    st.caption(
-        "This shows when currently-decided cases were originally filed. It is "
-        "not an approval-rate or success metric — it doesn't account for cases "
-        "filed in the same month that are still pending."
-    )
+    st.caption(t("caption_filed_cohort"))
 
     summary = _milestone_frame(metrics.milestone_durations)
     if not summary.empty:
-        summary = summary[summary["Milestone"] != "Approval"]
-    st.subheader("Typical time from filing")
+        summary = summary[summary[t("column_milestone")] != _label("approval")]
+    st.subheader(t("subheader_typical_time"))
     if summary.empty:
-        st.info("No complete filing-to-milestone samples are available yet.")
+        st.info(t("info_no_milestone_samples"))
     else:
-        preferred = ["TPS", "Re-parole", "EAD"]
+        preferred = [_label("tps"), _label("re_parole"), _label("ead")]
         order = {name: index for index, name in enumerate(preferred)}
-        summary["_order"] = summary["Case type"].map(
+        summary["_order"] = summary[t("column_case_type")].map(
             lambda value: order.get(value, len(order))
         )
-        summary = summary.sort_values(["_order", "Case type", "Milestone"])
+        summary = summary.sort_values(["_order", t("column_case_type"), t("column_milestone")])
         st.dataframe(summary.drop(columns="_order"), hide_index=True, width="stretch")
 
     weekly = _weekly_frame(metrics.weekly_milestone_durations)
     if not weekly.empty:
-        weekly = weekly[weekly["Milestone"] != "Approval"]
-    st.subheader("Weekly processing-time trend")
+        weekly = weekly[weekly[t("column_milestone")] != _label("approval")]
+    st.subheader(t("subheader_weekly_trend"))
     if weekly.empty:
-        st.info("Weekly trends will appear when dated milestones are available.")
+        st.info(t("info_no_weekly_trend"))
     else:
-        families = list(dict.fromkeys(weekly["Case type"]))
+        families = list(dict.fromkeys(weekly[t("column_case_type")]))
         default_family = next(
-            (name for name in ("Re-parole", "TPS", "EAD") if name in families),
+            (
+                name
+                for name in (_label("re_parole"), _label("tps"), _label("ead"))
+                if name in families
+            ),
             families[0],
         )
         c1, c2 = st.columns(2)
         family = c1.selectbox(
-            "Case type",
+            t("case_type_label"),
             families,
             index=families.index(default_family),
         )
         milestones = list(
-            dict.fromkeys(weekly.loc[weekly["Case type"] == family, "Milestone"])
+            dict.fromkeys(
+                weekly.loc[weekly[t("column_case_type")] == family, t("column_milestone")]
+            )
         )
-        milestone = c2.selectbox("Milestone", milestones)
+        milestone = c2.selectbox(t("milestone_label"), milestones)
         selected = weekly[
-            (weekly["Case type"] == family) & (weekly["Milestone"] == milestone)
+            (weekly[t("column_case_type")] == family) & (weekly[t("column_milestone")] == milestone)
         ]
         trend = selected.melt(
-            id_vars=["Week", "Cases"],
-            value_vars=["Average days", "Median days"],
-            var_name="Measure",
-            value_name="Days",
+            id_vars=[t("column_week"), t("column_cases")],
+            value_vars=[t("column_average_days"), t("column_median_days")],
+            var_name=t("measure_label"),
+            value_name=t("column_days"),
         )
         figure = px.line(
             trend,
-            x="Week",
-            y="Days",
-            color="Measure",
+            x=t("column_week"),
+            y=t("column_days"),
+            color=t("measure_label"),
             markers=True,
-            hover_data=["Cases"],
-            title=f"{family}: filing to {milestone.lower()}",
+            hover_data=[t("column_cases")],
+            title=t("chart_title_trend", family=family, milestone=milestone.lower()),
         )
         st.plotly_chart(figure, width="stretch")
-        st.caption(
-            "A rising line means recently reported cases took longer. "
-            "Hover over each point to see the sample size."
-        )
+        st.caption(t("caption_trend"))
 
         signals = _pace_signals(metrics.weekly_milestone_durations)
-        st.subheader("Recent pace signals")
+        st.subheader(t("subheader_pace_signals"))
         if signals.empty:
-            st.info("At least two populated weeks are needed to flag a change.")
+            st.info(t("info_no_pace_signals"))
         else:
             st.dataframe(signals, hide_index=True, width="stretch")
-            st.caption(
-                "Signals compare the latest populated week with up to four prior "
-                "populated weeks. A change beyond 15% is flagged descriptively."
-            )
+            st.caption(t("caption_pace_signals"))
 
     left, right = st.columns(2)
     with left:
         _bar(
             metrics.reports_by_month,
-            key_label="Reported month",
-            title="Reports by month",
+            key_label=t("column_reported_month"),
+            title=t("chart_title_reports_by_month"),
         )
     with right:
         _bar(
             metrics.decisions_by_month,
-            key_label="Decision month",
-            title="Final decisions by month",
+            key_label=t("column_decision_month"),
+            title=t("chart_title_decisions_by_month"),
         )
 
 with cases_tab:
@@ -725,20 +729,20 @@ with cases_tab:
     with left:
         _bar(
             metrics.reports_by_form,
-            key_label="Form",
-            title="Reports by USCIS form",
+            key_label=t("column_form"),
+            title=t("chart_title_reports_by_form"),
         )
         _bar(
             metrics.reports_by_subtype,
-            key_label="Case subtype",
-            title="Reports by case subtype",
+            key_label=t("column_case_subtype"),
+            title=t("chart_title_reports_by_subtype"),
             horizontal=True,
         )
     with right:
         _bar(
             metrics.current_status_distribution,
-            key_label="Current status",
-            title="Current status distribution",
+            key_label=t("column_current_status"),
+            title=t("chart_title_status_distribution"),
             horizontal=True,
         )
 
@@ -746,12 +750,12 @@ with expedite_tab:
     comparison = _expedite_frame(metrics.expedite_duration_comparisons)
     if not comparison.empty:
         comparison = comparison[
-            comparison["Case type"].isin(["Re-parole", "EAD"])
-            & (comparison["Milestone"] == "Final decision")
+            comparison[t("column_case_type")].isin([_label("re_parole"), _label("ead")])
+            & (comparison[t("column_milestone")] == _label("decision"))
         ]
-    st.subheader("Processing time with and without reported expedite")
+    st.subheader(t("subheader_expedite_comparison"))
     if comparison.empty:
-        st.info("No complete expedite comparison samples are available yet.")
+        st.info(t("info_no_expedite_comparison"))
     else:
         st.dataframe(comparison, hide_index=True, width="stretch")
     heatmap_left, heatmap_right = st.columns(2)
@@ -764,112 +768,94 @@ with expedite_tab:
         _decision_heatmap(monthly_decision_durations, "re_parole")
     with heatmap_right:
         _decision_heatmap(monthly_decision_durations, "ead")
-    st.caption(
-        "Each cell is the median time from the reported initial filing date to a final "
-        "approval or denial, grouped by decision month. Empty cells have no complete sample."
-    )
+    st.caption(t("caption_heatmap"))
     e1, e2 = st.columns(2)
-    e1.metric("Reported expedite requests", metrics.expedite_request_count)
-    e2.metric("Reports with expedite", metrics.reports_with_expedite)
+    e1.metric(t("metric_expedite_requests"), metrics.expedite_request_count)
+    e2.metric(t("metric_reports_with_expedite"), metrics.reports_with_expedite)
     _bar(
         metrics.expedite_by_channel,
-        key_label="Channel",
-        title="Reported expedite requests by channel",
+        key_label=t("column_channel"),
+        title=t("chart_title_expedite_by_channel"),
         horizontal=True,
     )
-    st.info(
-        "This comparison is descriptive. Expedite cases may differ in urgency, "
-        "evidence, timing, or other factors; correlation does not prove causation."
-    )
+    st.info(t("info_expedite_disclaimer"))
 
 with quality_tab:
     q1, q2, q3, q4 = st.columns(4)
-    q1.metric("Included reports", quality.included_report_count)
-    q2.metric("Excluded reports", quality.excluded_report_count)
-    q3.metric("Unknown form", quality.unknown_form_count)
-    q4.metric("Unknown status", quality.unknown_status_count)
+    q1.metric(t("metric_included_reports"), quality.included_report_count)
+    q2.metric(t("metric_excluded_reports"), quality.excluded_report_count)
+    q3.metric(t("metric_unknown_form"), quality.unknown_form_count)
+    q4.metric(t("metric_unknown_status"), quality.unknown_status_count)
     review_total = metrics.historic_pending_count + metrics.historic_reviewed_count
     review_percent = (
         metrics.historic_reviewed_count / review_total * 100 if review_total else 0.0
     )
-    st.metric("Historic review complete", f"{review_percent:.1f}%")
+    st.metric(t("metric_historic_review_complete"), f"{review_percent:.1f}%")
     quality_rows = pd.DataFrame(
         [
             {
-                "Quality signal": "Missing filed date",
-                "Count": quality.reports_missing_filed_date,
+                t("column_quality_signal"): t("quality_signal_missing_filed_date"),
+                t("column_count"): quality.reports_missing_filed_date,
             },
             {
-                "Quality signal": "Missing decision date",
-                "Count": quality.reports_missing_decision_date,
+                t("column_quality_signal"): t("quality_signal_missing_decision_date"),
+                t("column_count"): quality.reports_missing_decision_date,
             },
             {
-                "Quality signal": "Conflicting evidence",
-                "Count": quality.conflicting_evidence_count,
+                t("column_quality_signal"): t("quality_signal_conflicting_evidence"),
+                t("column_count"): quality.conflicting_evidence_count,
             },
         ]
     )
     st.plotly_chart(
         px.bar(
             quality_rows,
-            x="Quality signal",
-            y="Count",
-            title="Aggregate data-quality signals",
+            x=t("column_quality_signal"),
+            y=t("column_count"),
+            title=t("chart_title_quality_signals"),
         ),
         width="stretch",
     )
 
 with personal_tab:
-    st.caption(
-        "Anonymous, aggregate-only counts from the separate personal "
-        "tracking bot. No names, comments, receipt numbers, or Telegram "
-        "identities are ever included here."
-    )
+    st.caption(t("caption_personal_tab"))
     if personal_snapshot is None:
-        st.info("Community self-tracking aggregates are not available yet.")
+        st.info(t("info_no_personal_data"))
     else:
         counts = personal_snapshot.counts
         p1, p2 = st.columns(2)
-        p1.metric("Self-tracked submissions", counts.submission_count)
+        p1.metric(t("metric_self_tracked_submissions"), counts.submission_count)
         wait = personal_snapshot.pending_wait_days
         p2.metric(
-            "Median wait so far (pending)",
-            _days(wait.median_days) if wait.sample_size else "Not available",
+            t("metric_median_wait_pending"),
+            _days(wait.median_days) if wait.sample_size else t("days_not_available"),
         )
         left, right = st.columns(2)
         with left:
             _bar(
                 counts.by_form_type,
-                key_label="Form",
-                title="Self-tracked submissions by form",
+                key_label=t("column_form"),
+                title=t("chart_title_self_tracked_by_form"),
             )
         with right:
             _bar(
                 counts.by_status,
-                key_label="Current status",
-                title="Self-tracked current status distribution",
+                key_label=t("column_current_status"),
+                title=t("chart_title_self_tracked_status"),
                 horizontal=True,
             )
         _bar(
             counts.by_filed_month,
-            key_label="Reported month",
-            title="Self-tracked submissions by filing month",
+            key_label=t("column_reported_month"),
+            title=t("chart_title_self_tracked_by_month"),
         )
         st.caption(
-            f"Snapshot generated "
-            f"{personal_snapshot.generated_at.strftime('%Y-%m-%d %H:%M UTC')}."
+            t(
+                "caption_personal_generated",
+                generated_at=personal_snapshot.generated_at.strftime("%Y-%m-%d %H:%M UTC"),
+            )
         )
 
 st.divider()
-st.subheader("How to interpret this dashboard")
-st.markdown(
-    """
-- The source is self-reported community data, not a random sample of USCIS cases.
-- A multi-person report contributes its reported number of cases to processing samples.
-- Only human-confirmed historic reports and successfully published bot reports are counted.
-- Averages and medians use only records with explicit, non-conflicting dates.
-- Weekly spikes can be noisy when the displayed sample is small.
-- No raw messages, images, receipt numbers, Telegram identifiers, or
-  administrator identities are sent to this dashboard.
-"""
-)
+st.subheader(t("subheader_how_to_interpret"))
+st.markdown(t("how_to_interpret_body"))

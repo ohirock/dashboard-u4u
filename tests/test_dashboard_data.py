@@ -73,6 +73,14 @@ def snapshot_document() -> dict:
             "recent_decision_filed_cohorts": [
                 {"case_family": "re_parole", "filed_month": "2026-01-01", "count": 1}
             ],
+            "recent_decision_filed_cohorts_by_window": [
+                {
+                    "window": "month",
+                    "case_family": "re_parole",
+                    "filed_month": "2026-01-01",
+                    "count": 1,
+                }
+            ],
             "expedite_request_count": 0,
             "expedite_by_channel": [],
             "reports_with_expedite": 0,
@@ -137,13 +145,16 @@ class DashboardDataTests(unittest.TestCase):
         )
         self.assertEqual(
             requests[0].get_header("X-u4u-dashboard-schema"),
-            "3",
+            "4",
         )
         self.assertEqual(snapshot.metrics.report_count, 1)
         cohorts = snapshot.metrics.recent_decision_filed_cohorts
         self.assertEqual(len(cohorts), 1)
         self.assertEqual(cohorts[0].case_family, "re_parole")
         self.assertEqual(cohorts[0].count, 1)
+        by_window = snapshot.metrics.recent_decision_filed_cohorts_by_window
+        self.assertEqual(len(by_window), 1)
+        self.assertEqual(by_window[0].window, "month")
         invalid = snapshot_document()
         invalid["raw_messages"] = []
         with self.assertRaises(PublicDashboardUnavailable):
