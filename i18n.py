@@ -10,7 +10,7 @@ reads the same way in a channel post and on the dashboard.
 
 import streamlit as st
 
-DEFAULT_LANGUAGE = "en"
+DEFAULT_LANGUAGE = "uk"
 LANGUAGES: dict[str, str] = {"en": "English", "uk": "Українська"}
 _QUERY_PARAM = "lang"
 _SESSION_KEY = "lang"
@@ -150,6 +150,19 @@ _STRINGS: dict[str, dict[str, str]] = {
     "en": {
         "title": "USCIS Community Case Tracker",
         "subtitle": "Processing-time trends from human-reviewed, self-reported case updates.",
+        "subheader_about": "What is this?",
+        "about_body": (
+            "This site tracks how long Uniting for Ukraine cases (TPS, "
+            "Re-parole, work permits) are taking, based on updates people "
+            "voluntarily share in a Ukrainian community Telegram channel. "
+            "It is **not** an official USCIS website and has no connection "
+            "to USCIS or the US government.\n\n"
+            "Every update is checked by a human or matched against dated "
+            "screenshots before it's counted — never raw messages, photos, "
+            "receipt numbers, or names, only dates and case types. So far "
+            "this covers **{report_count:,}** case updates from "
+            "**{case_observation_count:,}** reported cases."
+        ),
         "api_unavailable_info": (
             "The public aggregate service is temporarily unavailable. "
             "No private case data is stored in this dashboard."
@@ -169,7 +182,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "tab_speed": "Processing speed",
         "tab_cases": "Cases",
         "tab_expedite": "Expedite impact",
-        "tab_quality": "Data quality",
+        "tab_estimates": "My case estimate",
         "tab_personal": "Community self-tracking",
         "subheader_recent_decisions": "Recent final decisions",
         "metric_last_7_days": "Last 7 days",
@@ -178,9 +191,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "metric_current_month": "Current month",
         "subheader_recent_pace": "Recent pace by case type",
         "caption_recent_pace": (
-            "Bars are decision volume, the line is processing time. Triangles mark "
-            "periods that moved more than 15% from the trailing average of up to "
-            "four prior periods."
+            "Bars show how many decisions happened; the line shows how long they "
+            "took. A triangle marks a period that was notably faster or slower "
+            "than the recent periods before it."
         ),
         "granularity_label": "Granularity",
         "granularity_monthly": "Monthly",
@@ -188,9 +201,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         "duration_label_weighted": "Average days (weighted)",
         "duration_label_median": "Median days",
         "caption_monthly_weighted": (
-            "Monthly points are a decision-count-weighted average of the weekly "
-            "figures (medians can't be correctly re-derived from other medians). "
-            "Switch to Weekly for exact medians."
+            "Monthly points are an average of the weekly numbers. Switch to "
+            "Weekly to see the exact typical value for each week."
         ),
         "no_recent_decisions_for": "No recent decision samples are available yet for {title}.",
         "decisions_series_name": "Decisions",
@@ -213,15 +225,21 @@ _STRINGS: dict[str, dict[str, str]] = {
             "breakdown."
         ),
         "caption_filed_cohort": (
-            "This shows when currently-decided cases were originally filed. It is "
-            "not an approval-rate or success metric — it doesn't account for cases "
-            "filed in the same month that are still pending."
+            "Shows when the cases decided recently were originally filed. This "
+            "is not a chance-of-approval number — it leaves out cases from the "
+            "same month that are still waiting."
         ),
         "column_filed_month": "Filed month",
         "column_count": "Count",
         "metric_filed_cohort_total": "{case_type} total",
         "subheader_typical_time": "Typical time from filing",
         "info_no_milestone_samples": "No complete filing-to-milestone samples are available yet.",
+        "typical_wait_sentence": (
+            "**{family}**: most reported cases are decided within "
+            "**{low:.0f}–{high:.0f} days** of filing (25th–75th percentile, "
+            "{count} cases)."
+        ),
+        "typical_wait_unavailable": "**{family}**: not enough decided cases yet to estimate a typical range.",
         "column_milestone": "Milestone",
         "column_average_days": "Average days",
         "column_median_days": "Median days",
@@ -236,8 +254,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "measure_label": "Measure",
         "chart_title_trend": "{family}: filing to {milestone}",
         "caption_trend": (
-            "A rising line means recently reported cases took longer. "
-            "Hover over each point to see the sample size."
+            "A line going up means cases have recently been taking longer to "
+            "reach this step. Hover over a point to see how many cases it's "
+            "based on."
         ),
         "subheader_pace_signals": "Recent pace signals",
         "info_no_pace_signals": "At least two populated weeks are needed to flag a change.",
@@ -246,20 +265,25 @@ _STRINGS: dict[str, dict[str, str]] = {
         "column_prior_baseline": "Prior-week baseline",
         "column_latest_cases": "Latest cases",
         "caption_pace_signals": (
-            "Signals compare the latest populated week with up to four prior "
-            "populated weeks. A change beyond 15% is flagged descriptively."
+            "Compares the most recent week to the few weeks before it. A "
+            "change bigger than 15% is flagged as Slower or Faster."
         ),
         "chart_title_reports_by_month": "Reports by month",
         "chart_title_decisions_by_month": "Final decisions by month",
         "column_reported_month": "Reported month",
         "column_decision_month": "Decision month",
         "info_no_breakdown_data": "No data is available for this breakdown yet.",
+        "caption_reports_by_month": "How many case updates were reported in each month.",
+        "caption_decisions_by_month": "How many final decisions (approved or denied) happened in each month.",
         "chart_title_reports_by_form": "Reports by USCIS form",
         "chart_title_reports_by_subtype": "Reports by case subtype",
         "column_form": "Form",
         "column_case_subtype": "Case subtype",
         "chart_title_status_distribution": "Current status distribution",
         "column_current_status": "Current status",
+        "caption_reports_by_form": "Which USCIS form each reported case is about.",
+        "caption_reports_by_subtype": "A more specific breakdown of the case types above.",
+        "caption_status_distribution": "Where all reported cases currently stand (pending, approved, denied, etc.).",
         "subheader_expedite_comparison": "Processing time with and without reported expedite",
         "info_no_expedite_comparison": "No complete expedite comparison samples are available yet.",
         "column_expedite_median": "Expedite median",
@@ -269,28 +293,21 @@ _STRINGS: dict[str, dict[str, str]] = {
         "column_no_expedite_average": "No expedite average",
         "column_no_expedite_cases": "No expedite cases",
         "column_median_difference": "Median difference",
-        "caption_heatmap": (
-            "Each cell is the median time from the reported initial filing date to a final "
-            "approval or denial, grouped by decision month. Empty cells have no complete sample."
+        "monthly_decision_chart_title": "{family}: time to final decision by month",
+        "monthly_decision_no_samples": "No monthly {family} decision samples are available yet.",
+        "caption_monthly_decision_chart": (
+            "Median days from filing to a final decision, by the month the "
+            "decision happened, split by whether an expedite was reported."
         ),
         "metric_expedite_requests": "Reported expedite requests",
         "metric_reports_with_expedite": "Reports with expedite",
         "chart_title_expedite_by_channel": "Reported expedite requests by channel",
         "column_channel": "Channel",
         "info_expedite_disclaimer": (
-            "This comparison is descriptive. Expedite cases may differ in urgency, "
-            "evidence, timing, or other factors; correlation does not prove causation."
+            "This is a comparison, not proof that expediting causes a faster "
+            "decision — expedited cases may simply differ in other ways, like "
+            "urgency or the evidence provided."
         ),
-        "metric_included_reports": "Included reports",
-        "metric_excluded_reports": "Excluded reports",
-        "metric_unknown_form": "Unknown form",
-        "metric_unknown_status": "Unknown status",
-        "metric_historic_review_complete": "Historic review complete",
-        "quality_signal_missing_filed_date": "Missing filed date",
-        "quality_signal_missing_decision_date": "Missing decision date",
-        "quality_signal_conflicting_evidence": "Conflicting evidence",
-        "column_quality_signal": "Quality signal",
-        "chart_title_quality_signals": "Aggregate data-quality signals",
         "caption_personal_tab": (
             "Anonymous, aggregate-only counts from the separate personal "
             "tracking bot. No names, comments, receipt numbers, or Telegram "
@@ -302,38 +319,68 @@ _STRINGS: dict[str, dict[str, str]] = {
         "chart_title_self_tracked_by_form": "Self-tracked submissions by form",
         "chart_title_self_tracked_status": "Self-tracked current status distribution",
         "chart_title_self_tracked_by_month": "Self-tracked submissions by filing month",
+        "caption_self_tracked_by_form": "Which form the self-tracked submissions are about.",
+        "caption_self_tracked_status": "Current status of the self-tracked submissions.",
+        "caption_self_tracked_by_month": "When the self-tracked submissions were filed.",
         "caption_personal_generated": "Snapshot generated {generated_at}.",
         "days_value": "{value:.0f} days",
         "days_not_available": "Not available",
-        "subheader_how_to_interpret": "How to interpret this dashboard",
+        "subheader_how_to_interpret": "Good to know before you read the charts",
         "how_to_interpret_body": (
-            "- The source is self-reported community data, not a random sample of USCIS cases.\n"
-            "- A multi-person report contributes its reported number of cases to processing "
-            "samples.\n"
-            "- Only human-confirmed historic reports and successfully published bot reports "
-            "are counted.\n"
-            "- Averages and medians use only records with explicit, non-conflicting dates.\n"
-            "- Weekly spikes can be noisy when the displayed sample is small.\n"
-            "- No raw messages, images, receipt numbers, Telegram identifiers, or "
-            "administrator identities are sent to this dashboard.\n"
+            "- This is community-reported data, not an official USCIS sample — treat "
+            "trends as a general sense of pace, not a guarantee.\n"
+            "- If one report covers a family (e.g. \"3 of us got approved\"), all 3 "
+            "cases count.\n"
+            "- Only reviewed community reports are counted, and only ones with clear, "
+            "non-conflicting dates.\n"
+            "- Small weeks/months can look noisy — a couple of unusual cases can swing "
+            "the number.\n"
+            "- Nothing private is ever shown here: no messages, photos, receipt numbers, "
+            "or names.\n"
         ),
         "refresh_countdown_before": "Data refresh will happen in",
         "refresh_countdown_after": "— reopen this page after that to check.",
         "heatmap_no_expedite": "No reported expedite",
         "heatmap_expedite": "Reported expedite",
-        "heatmap_title": "{family} filing-to-final-decision speed",
-        "heatmap_no_samples": "No monthly {family} decision samples are available yet.",
-        "heatmap_colorbar_title": "Median days",
-        "heatmap_hovertemplate": (
-            "Decision month: %{x}<br>%{y}<br>Median: %{z:.0f} days"
-            "<br>Cases: %{customdata}<extra></extra>"
+        "subheader_case_estimates": "Enter your filed date to see similar cases",
+        "caption_case_estimates": (
+            "This compares your filed date with other reported cases filed "
+            "around the same time. It's a rough estimate from community "
+            "data, not a prediction of your own outcome."
         ),
+        "filed_date_label": "Date you filed",
+        "window_1week_label": "± 1 week",
+        "window_1month_label": "± 1 month",
+        "window_3month_label": "± 3 months",
+        "estimates_window_heading": "Cases filed within {window} of your date",
+        "estimates_no_data": "No reported cases were filed in this window yet — try a wider window.",
+        "estimates_approved_count": "Approved",
+        "estimates_pending_count": "Still pending",
+        "estimates_denied_count": "Denied",
+        "estimates_pending_wait_median": "Median wait so far (pending cases)",
+        "estimates_approved_wait_median": "Median time to approval (already decided)",
+        "estimates_column_type": "Case type",
+        "estimates_pick_date_prompt": "Pick a filed date above to see estimates.",
     },
     "uk": {
         "title": "Спільнотний трекер справ USCIS",
         "subtitle": (
             "Тенденції термінів розгляду на основі перевірених людиною, "
             "самостійно поданих оновлень справ."
+        ),
+        "subheader_about": "Що це таке?",
+        "about_body": (
+            "Цей сайт відстежує, скільки часу займають справи Uniting for "
+            "Ukraine (TPS, Re-parole, дозволи на роботу), на основі "
+            "оновлень, якими люди добровільно діляться в україномовному "
+            "спільнотному каналі в Telegram. Це **не** офіційний сайт "
+            "USCIS і не має жодного зв'язку з USCIS чи урядом США.\n\n"
+            "Кожне оновлення перевіряє людина або звіряє з датованими "
+            "скриншотами, перш ніж воно потрапляє в статистику — сюди "
+            "ніколи не потрапляють самі повідомлення, фото, номери "
+            "квитанцій чи імена, лише дати й типи справ. Наразі тут "
+            "зібрано **{report_count:,}** оновлень по **{case_observation_count:,}** "
+            "заявлених справах."
         ),
         "api_unavailable_info": (
             "Публічний агрегований сервіс тимчасово недоступний. "
@@ -354,7 +401,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "tab_speed": "Швидкість розгляду",
         "tab_cases": "Справи",
         "tab_expedite": "Вплив прискорення",
-        "tab_quality": "Якість даних",
+        "tab_estimates": "Оцінка моєї справи",
         "tab_personal": "Особисте відстеження спільноти",
         "subheader_recent_decisions": "Нещодавні остаточні рішення",
         "metric_last_7_days": "Останні 7 днів",
@@ -363,9 +410,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "metric_current_month": "Поточний місяць",
         "subheader_recent_pace": "Нещодавній темп за типом справи",
         "caption_recent_pace": (
-            "Стовпці — обсяг рішень, лінія — час обробки. Трикутники позначають "
-            "періоди, що змінилися більш ніж на 15% відносно ковзного середнього "
-            "за до чотирьох попередніх періодів."
+            "Стовпці показують, скільки було рішень; лінія — скільки часу вони "
+            "займали. Трикутник позначає період, помітно швидший або повільніший "
+            "за попередні."
         ),
         "granularity_label": "Деталізація",
         "granularity_monthly": "Місячна",
@@ -373,9 +420,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "duration_label_weighted": "Середні дні (зважені)",
         "duration_label_median": "Медіана днів",
         "caption_monthly_weighted": (
-            "Місячні точки — це середнє за тижневими показниками, зважене за "
-            "кількістю рішень (медіани коректно не перераховуються з інших "
-            "медіан). Перемкніть на тижневу деталізацію для точних медіан."
+            "Місячні точки — це середнє за тижневими показниками. Перемкніть на "
+            "тижневу деталізацію, щоб побачити точне типове значення за кожен "
+            "тиждень."
         ),
         "no_recent_decisions_for": "Ще немає нещодавніх рішень для {title}.",
         "decisions_series_name": "Рішення",
@@ -398,15 +445,21 @@ _STRINGS: dict[str, dict[str, str]] = {
             "місяцем подання."
         ),
         "caption_filed_cohort": (
-            "Показує, коли було подано справи, які вирішуються зараз. Це не "
-            "показник відсотка схвалень чи успіху — він не враховує справи, "
-            "подані того самого місяця, які досі на розгляді."
+            "Показує, коли було подано справи, вирішені нещодавно. Це не "
+            "показник шансу на схвалення — він не враховує справи того самого "
+            "місяця, які досі на розгляді."
         ),
         "column_filed_month": "Місяць подання",
         "column_count": "Кількість",
         "metric_filed_cohort_total": "Усього, {case_type}",
         "subheader_typical_time": "Типовий час від подання",
         "info_no_milestone_samples": "Ще немає повних вибірок від подання до етапу.",
+        "typical_wait_sentence": (
+            "**{family}**: більшість заявлених справ вирішуються протягом "
+            "**{low:.0f}–{high:.0f} днів** від подання (25-й–75-й перцентиль, "
+            "{count} справ)."
+        ),
+        "typical_wait_unavailable": "**{family}**: ще недостатньо вирішених справ, щоб оцінити типовий діапазон.",
         "column_milestone": "Етап",
         "column_average_days": "Середні дні",
         "column_median_days": "Медіана днів",
@@ -421,8 +474,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "measure_label": "Показник",
         "chart_title_trend": "{family}: від подання до {milestone}",
         "caption_trend": (
-            "Зростання лінії означає, що нещодавно подані справи оброблялися "
-            "довше. Наведіть курсор на точку, щоб побачити розмір вибірки."
+            "Зростання лінії означає, що справи останнім часом доходять до "
+            "цього етапу довше. Наведіть курсор на точку, щоб побачити, скільки "
+            "справ враховано."
         ),
         "subheader_pace_signals": "Нещодавні сигнали темпу",
         "info_no_pace_signals": "Потрібно щонайменше два заповнені тижні, щоб позначити зміну.",
@@ -431,20 +485,25 @@ _STRINGS: dict[str, dict[str, str]] = {
         "column_prior_baseline": "Базове значення попереднього тижня",
         "column_latest_cases": "Справ за останній тиждень",
         "caption_pace_signals": (
-            "Сигнали порівнюють останній заповнений тиждень із до чотирьох "
-            "попередніх заповнених тижнів. Зміна понад 15% позначається описово."
+            "Порівнює останній тиждень із кількома попередніми. Велика зміна "
+            "(понад 15%) позначається як «Повільніше» або «Швидше»."
         ),
         "chart_title_reports_by_month": "Звіти за місяцями",
         "chart_title_decisions_by_month": "Остаточні рішення за місяцями",
         "column_reported_month": "Місяць звіту",
         "column_decision_month": "Місяць рішення",
         "info_no_breakdown_data": "Дані для цього розподілу ще недоступні.",
+        "caption_reports_by_month": "Скільки оновлень по справах було подано щомісяця.",
+        "caption_decisions_by_month": "Скільки остаточних рішень (схвалено чи відмовлено) було щомісяця.",
         "chart_title_reports_by_form": "Звіти за формою USCIS",
         "chart_title_reports_by_subtype": "Звіти за підтипом справи",
         "column_form": "Форма",
         "column_case_subtype": "Підтип справи",
         "chart_title_status_distribution": "Розподіл поточних статусів",
         "column_current_status": "Поточний статус",
+        "caption_reports_by_form": "На яку форму USCIS подана кожна заявлена справа.",
+        "caption_reports_by_subtype": "Детальніший розподіл типів справ вище.",
+        "caption_status_distribution": "На якому етапі зараз перебувають усі заявлені справи (на розгляді, схвалено, відмовлено тощо).",
         "subheader_expedite_comparison": "Час обробки з прискоренням і без нього",
         "info_no_expedite_comparison": "Ще немає повних вибірок для порівняння прискорення.",
         "column_expedite_median": "Медіана з прискоренням",
@@ -454,30 +513,21 @@ _STRINGS: dict[str, dict[str, str]] = {
         "column_no_expedite_average": "Середнє без прискорення",
         "column_no_expedite_cases": "Справ без прискорення",
         "column_median_difference": "Різниця медіан",
-        "caption_heatmap": (
-            "Кожна клітинка — медіанний час від дати подання до остаточного "
-            "схвалення чи відмови, згруповано за місяцем рішення. Порожні "
-            "клітинки не мають повної вибірки."
+        "monthly_decision_chart_title": "{family}: час до остаточного рішення за місяцями",
+        "monthly_decision_no_samples": "Ще немає місячних даних рішень для {family}.",
+        "caption_monthly_decision_chart": (
+            "Медіанна кількість днів від подання до остаточного рішення, за "
+            "місяцем рішення, з розподілом за наявністю заявленого прискорення."
         ),
         "metric_expedite_requests": "Заявлені запити на прискорення",
         "metric_reports_with_expedite": "Звітів із прискоренням",
         "chart_title_expedite_by_channel": "Запити на прискорення за каналом",
         "column_channel": "Канал",
         "info_expedite_disclaimer": (
-            "Це порівняння описове. Справи з прискоренням можуть відрізнятися "
-            "терміновістю, доказами, термінами чи іншими факторами; кореляція "
-            "не доводить причинності."
+            "Це порівняння, а не доказ того, що прискорення прискорює рішення "
+            "— справи з прискоренням можуть просто відрізнятися іншим: "
+            "терміновістю чи наданими доказами."
         ),
-        "metric_included_reports": "Враховані звіти",
-        "metric_excluded_reports": "Виключені звіти",
-        "metric_unknown_form": "Невідома форма",
-        "metric_unknown_status": "Невідомий статус",
-        "metric_historic_review_complete": "Перевірка історичних даних завершена",
-        "quality_signal_missing_filed_date": "Відсутня дата подання",
-        "quality_signal_missing_decision_date": "Відсутня дата рішення",
-        "quality_signal_conflicting_evidence": "Суперечливі дані",
-        "column_quality_signal": "Показник якості",
-        "chart_title_quality_signals": "Загальні показники якості даних",
         "caption_personal_tab": (
             "Анонімні, лише агреговані підрахунки з окремого бота особистого "
             "відстеження. Тут ніколи не буде імен, коментарів, номерів "
@@ -489,32 +539,47 @@ _STRINGS: dict[str, dict[str, str]] = {
         "chart_title_self_tracked_by_form": "Самостійно відстежені заявки за формою",
         "chart_title_self_tracked_status": "Розподіл поточних статусів самостійного відстеження",
         "chart_title_self_tracked_by_month": "Самостійно відстежені заявки за місяцем подання",
+        "caption_self_tracked_by_form": "На яку форму подані самостійно відстежені заявки.",
+        "caption_self_tracked_status": "Поточний статус самостійно відстежених заявок.",
+        "caption_self_tracked_by_month": "Коли були подані самостійно відстежені заявки.",
         "caption_personal_generated": "Знімок згенеровано {generated_at}.",
         "days_value": "{value:.0f} дн.",
         "days_not_available": "Немає даних",
-        "subheader_how_to_interpret": "Як тлумачити цей дашборд",
+        "subheader_how_to_interpret": "Корисно знати перед переглядом графіків",
         "how_to_interpret_body": (
-            "- Джерело — дані спільноти, подані самостійно, а не випадкова вибірка справ "
-            "USCIS.\n"
-            "- Звіт від кількох осіб додає заявлену кількість справ до вибірок обробки.\n"
-            "- Враховуються лише підтверджені людиною історичні звіти та успішно "
-            "опубліковані звіти бота.\n"
-            "- Середні та медіани використовують лише записи з чіткими, несуперечливими "
-            "датами.\n"
-            "- Тижневі сплески можуть бути шумними при малій вибірці.\n"
-            "- Жодні повідомлення, зображення, номери квитанцій, ідентифікатори Telegram "
-            "чи особи адміністраторів не передаються на цей дашборд.\n"
+            "- Це дані спільноти, подані самостійно, а не офіційна вибірка USCIS — "
+            "сприймайте тенденції як загальне уявлення про темп, а не гарантію.\n"
+            "- Якщо один звіт стосується родини (наприклад, «3 з нас отримали "
+            "схвалення»), враховуються всі 3 справи.\n"
+            "- Враховуються лише перевірені звіти спільноти, і лише ті, що мають чіткі, "
+            "несуперечливі дати.\n"
+            "- Малі тижні чи місяці можуть виглядати «шумними» — кілька нетипових "
+            "справ можуть сильно змінити цифру.\n"
+            "- Тут ніколи не показуються приватні дані: жодних повідомлень, фото, "
+            "номерів квитанцій чи імен.\n"
         ),
         "refresh_countdown_before": "Оновлення даних відбудеться через",
         "refresh_countdown_after": "— поверніться на цю сторінку пізніше, щоб перевірити.",
         "heatmap_no_expedite": "Без заявленого прискорення",
         "heatmap_expedite": "Із заявленим прискоренням",
-        "heatmap_title": "{family}: швидкість від подання до остаточного рішення",
-        "heatmap_no_samples": "Ще немає місячних даних рішень для {family}.",
-        "heatmap_colorbar_title": "Медіана днів",
-        "heatmap_hovertemplate": (
-            "Місяць рішення: %{x}<br>%{y}<br>Медіана: %{z:.0f} дн."
-            "<br>Справ: %{customdata}<extra></extra>"
+        "subheader_case_estimates": "Введіть дату подання, щоб побачити схожі справи",
+        "caption_case_estimates": (
+            "Тут ваша дата подання порівнюється з іншими заявленими справами, "
+            "поданими приблизно в той самий час. Це орієнтовна оцінка на основі "
+            "даних спільноти, а не прогноз результату саме вашої справи."
         ),
+        "filed_date_label": "Дата, коли ви подали справу",
+        "window_1week_label": "± 1 тиждень",
+        "window_1month_label": "± 1 місяць",
+        "window_3month_label": "± 3 місяці",
+        "estimates_window_heading": "Справи, подані в межах {window} від вашої дати",
+        "estimates_no_data": "У цьому діапазоні ще немає заявлених справ — спробуйте ширший діапазон.",
+        "estimates_approved_count": "Схвалено",
+        "estimates_pending_count": "Ще на розгляді",
+        "estimates_denied_count": "Відмовлено",
+        "estimates_pending_wait_median": "Медіанне очікування дотепер (справи на розгляді)",
+        "estimates_approved_wait_median": "Медіанний час до схвалення (уже вирішені)",
+        "estimates_column_type": "Тип справи",
+        "estimates_pick_date_prompt": "Оберіть дату подання вище, щоб побачити оцінку.",
     },
 }

@@ -101,6 +101,14 @@ class DashboardRecentDecisionFiledCohortByWindow(StrictModel):
     count: int = Field(ge=0)
 
 
+class DashboardFiledCaseObservation(StrictModel):
+    case_family: str = Field(min_length=1)
+    filed_date: date
+    status_bucket: str = Field(min_length=1)
+    decision_date: date | None = None
+    weight: int = Field(ge=1)
+
+
 class DashboardMetrics(StrictModel):
     report_count: int = Field(ge=0)
     case_observation_count: int = Field(ge=0)
@@ -119,6 +127,7 @@ class DashboardMetrics(StrictModel):
     recent_decision_filed_cohorts_by_window: tuple[
         DashboardRecentDecisionFiledCohortByWindow, ...
     ] = ()
+    filed_case_observations: tuple[DashboardFiledCaseObservation, ...] = ()
     expedite_request_count: int = Field(ge=0)
     expedite_by_channel: tuple[DashboardCountBucket, ...]
     reports_with_expedite: int = Field(ge=0)
@@ -221,7 +230,7 @@ def fetch_dashboard_snapshot(
         normalized + DASHBOARD_PATH,
         headers={
             "Accept": "application/json",
-            "X-U4U-Dashboard-Schema": "4",
+            "X-U4U-Dashboard-Schema": "5",
         },
         method="GET",
     )

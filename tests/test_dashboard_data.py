@@ -145,7 +145,7 @@ class DashboardDataTests(unittest.TestCase):
         )
         self.assertEqual(
             requests[0].get_header("X-u4u-dashboard-schema"),
-            "4",
+            "5",
         )
         self.assertEqual(snapshot.metrics.report_count, 1)
         cohorts = snapshot.metrics.recent_decision_filed_cohorts

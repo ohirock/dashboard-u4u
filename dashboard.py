@@ -5,9 +5,7 @@ from datetime import UTC, datetime, timedelta
 
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
-import streamlit.components.v1 as components
 from plotly.subplots import make_subplots
 from streamlit.errors import StreamlitSecretNotFoundError
 
@@ -94,7 +92,7 @@ def _render_refresh_countdown(fetched_at: datetime) -> None:
 
     period_seconds = PAGE_DATA_CACHE_TTL_SECONDS
     next_refresh_at = fetched_at + timedelta(seconds=period_seconds)
-    components.html(
+    st.iframe(
         f"""
         <div style="font-family:'Source Sans Pro',sans-serif;font-size:0.8rem;
                      color:gray;">
@@ -138,7 +136,7 @@ def _frame(buckets, key_label):
     return frame
 
 
-def _bar(buckets, *, key_label, title, horizontal=False):
+def _bar(buckets, *, key_label, title, horizontal=False, caption=None):
     frame = _frame(buckets, key_label)
     if frame.empty:
         st.info(t("info_no_breakdown_data"))
@@ -151,6 +149,8 @@ def _bar(buckets, *, key_label, title, horizontal=False):
         title=title,
     )
     st.plotly_chart(figure, width="stretch")
+    if caption:
+        st.caption(caption)
 
 
 def _days(value: float | None) -> str:
@@ -450,7 +450,7 @@ def _decision_summary(rows, family: str):
     )
 
 
-def _decision_heatmap(rows, family: str) -> None:
+def _monthly_decision_chart(rows, family: str) -> None:
     labels = {False: t("heatmap_no_expedite"), True: t("heatmap_expedite")}
     frame = pd.DataFrame(
         [
@@ -461,36 +461,79 @@ def _decision_heatmap(rows, family: str) -> None:
                 "Cases": row.duration.sample_size,
             }
             for row in rows
-            if row.case_family == family
+            if row.case_family == family and row.duration.median_days is not None
         ]
     )
-    title = t("heatmap_title", family=_label(family))
+    title = t("monthly_decision_chart_title", family=_label(family))
     if frame.empty:
-        st.info(t("heatmap_no_samples", family=_label(family)))
+        st.info(t("monthly_decision_no_samples", family=_label(family)))
         return
-    order = [labels[False], labels[True]]
-    medians = frame.pivot(
-        index="Expedite", columns="Month", values="Median days"
-    ).reindex(order)
-    samples = frame.pivot(index="Expedite", columns="Month", values="Cases").reindex(
-        index=order,
-        columns=medians.columns,
+    month_order = sorted(frame["Month"].unique())
+    figure = px.bar(
+        frame,
+        x="Month",
+        y="Median days",
+        color="Expedite",
+        barmode="group",
+        category_orders={"Month": month_order, "Expedite": [labels[False], labels[True]]},
+        hover_data=["Cases"],
+        title=title,
     )
-    figure = go.Figure(
-        data=go.Heatmap(
-            z=medians.to_numpy(),
-            x=list(medians.columns),
-            y=list(medians.index),
-            customdata=samples.to_numpy(),
-            colorscale="RdYlGn_r",
-            colorbar={"title": t("heatmap_colorbar_title")},
-            hovertemplate=t("heatmap_hovertemplate"),
-        )
-    )
-    figure.update_layout(
-        title=title, height=320, margin={"l": 20, "r": 20, "t": 60, "b": 20}
-    )
+    figure.update_layout(height=320, margin={"l": 20, "r": 20, "t": 60, "b": 20})
     st.plotly_chart(figure, width="stretch")
+
+
+def _case_estimates_table(observations, filed_date, window_days: int, generated_date):
+    """One row per case family for reports filed within `window_days` of
+    `filed_date` (in either direction): approved/pending/denied counts,
+    how long pending cases in this window have been waiting so far, and
+    how long the already-approved ones in this window actually took.
+    """
+    window_rows = [
+        obs for obs in observations if abs((obs.filed_date - filed_date).days) <= window_days
+    ]
+    if not window_rows:
+        return None
+    rows = []
+    for family in ("tps", "re_parole", "ead"):
+        family_rows = [obs for obs in window_rows if obs.case_family == family]
+        if not family_rows:
+            continue
+        pending_waits = [
+            (generated_date - obs.filed_date).days
+            for obs in family_rows
+            if obs.status_bucket == "pending"
+            for _ in range(obs.weight)
+        ]
+        approved_durations = [
+            (obs.decision_date - obs.filed_date).days
+            for obs in family_rows
+            if obs.status_bucket == "approved" and obs.decision_date is not None
+            for _ in range(obs.weight)
+        ]
+        rows.append(
+            {
+                t("estimates_column_type"): _label(family),
+                t("estimates_approved_count"): sum(
+                    obs.weight for obs in family_rows if obs.status_bucket == "approved"
+                ),
+                t("estimates_pending_count"): sum(
+                    obs.weight for obs in family_rows if obs.status_bucket == "pending"
+                ),
+                t("estimates_denied_count"): sum(
+                    obs.weight for obs in family_rows if obs.status_bucket == "denied"
+                ),
+                t("estimates_pending_wait_median"): (
+                    _days(pd.Series(pending_waits).median()) if pending_waits else t("days_not_available")
+                ),
+                t("estimates_approved_wait_median"): (
+                    _days(pd.Series(approved_durations).median())
+                    if approved_durations
+                    else t("days_not_available")
+                ),
+            }
+        )
+    return pd.DataFrame(rows) if rows else None
 
 
 _lang_col, _ = st.columns([1, 5])
@@ -511,6 +554,15 @@ except PublicDashboardUnavailable as error:
     st.info(t("api_unavailable_info"))
     st.stop()
 
+with st.expander(t("subheader_about"), expanded=True):
+    st.markdown(
+        t(
+            "about_body",
+            report_count=snapshot.metrics.report_count,
+            case_observation_count=snapshot.metrics.case_observation_count,
+        )
+    )
+
 # Loaded once here (not inside the personal tab) so one global countdown can
 # cover every cached data source on the page, including the personal tab's.
 personal_snapshot, personal_fetched_at = _load_personal_snapshot(api_base_url)
@@ -524,10 +576,10 @@ else:
     st.caption(t("snapshot_fresh", version=snapshot.data_version, freshness=freshness))
 
 metrics = snapshot.metrics
-quality = snapshot.quality
 decisions = metrics.final_decisions
 reparole_decision = _decision_summary(metrics.milestone_durations, "re_parole")
 ead_decision = _decision_summary(metrics.milestone_durations, "ead")
+tps_decision = _decision_summary(metrics.milestone_durations, "tps")
 
 summary_1, summary_2, summary_3 = st.columns(3)
 summary_1.metric(t("metric_case_observations"), metrics.case_observation_count)
@@ -549,17 +601,40 @@ e1.metric(t("metric_ead_average"), _days(ead_decision.average_days if ead_decisi
 e2.metric(t("metric_ead_median"), _days(ead_decision.median_days if ead_decision else None))
 e3.metric(t("metric_ead_cases"), ead_decision.sample_size if ead_decision else 0)
 
-speed_tab, cases_tab, expedite_tab, quality_tab, personal_tab = st.tabs(
+speed_tab, cases_tab, expedite_tab, estimates_tab, personal_tab = st.tabs(
     (
         t("tab_speed"),
         t("tab_cases"),
         t("tab_expedite"),
-        t("tab_quality"),
+        t("tab_estimates"),
         t("tab_personal"),
     )
 )
 
 with speed_tab:
+    for family_key, family_decision in (
+        ("tps", tps_decision),
+        ("re_parole", reparole_decision),
+        ("ead", ead_decision),
+    ):
+        if (
+            family_decision
+            and family_decision.first_quartile_days is not None
+            and family_decision.third_quartile_days is not None
+        ):
+            st.markdown(
+                "- "
+                + t(
+                    "typical_wait_sentence",
+                    family=_label(family_key),
+                    low=family_decision.first_quartile_days,
+                    high=family_decision.third_quartile_days,
+                    count=family_decision.sample_size,
+                )
+            )
+        else:
+            st.markdown("- " + t("typical_wait_unavailable", family=_label(family_key)))
+
     st.subheader(t("subheader_recent_decisions"))
     d1, d2, d3, d4 = st.columns(4)
     d1.metric(t("metric_last_7_days"), decisions.last_7_days)
@@ -731,12 +806,14 @@ with speed_tab:
             metrics.reports_by_month,
             key_label=t("column_reported_month"),
             title=t("chart_title_reports_by_month"),
+            caption=t("caption_reports_by_month"),
         )
     with right:
         _bar(
             metrics.decisions_by_month,
             key_label=t("column_decision_month"),
             title=t("chart_title_decisions_by_month"),
+            caption=t("caption_decisions_by_month"),
         )
 
 with cases_tab:
@@ -746,12 +823,14 @@ with cases_tab:
             metrics.reports_by_form,
             key_label=t("column_form"),
             title=t("chart_title_reports_by_form"),
+            caption=t("caption_reports_by_form"),
         )
         _bar(
             metrics.reports_by_subtype,
             key_label=t("column_case_subtype"),
             title=t("chart_title_reports_by_subtype"),
             horizontal=True,
+            caption=t("caption_reports_by_subtype"),
         )
     with right:
         _bar(
@@ -759,6 +838,7 @@ with cases_tab:
             key_label=t("column_current_status"),
             title=t("chart_title_status_distribution"),
             horizontal=True,
+            caption=t("caption_status_distribution"),
         )
 
 with expedite_tab:
@@ -780,10 +860,10 @@ with expedite_tab:
         (),
     )
     with heatmap_left:
-        _decision_heatmap(monthly_decision_durations, "re_parole")
+        _monthly_decision_chart(monthly_decision_durations, "re_parole")
     with heatmap_right:
-        _decision_heatmap(monthly_decision_durations, "ead")
-    st.caption(t("caption_heatmap"))
+        _monthly_decision_chart(monthly_decision_durations, "ead")
+    st.caption(t("caption_monthly_decision_chart"))
     e1, e2 = st.columns(2)
     e1.metric(t("metric_expedite_requests"), metrics.expedite_request_count)
     e2.metric(t("metric_reports_with_expedite"), metrics.reports_with_expedite)
@@ -795,42 +875,34 @@ with expedite_tab:
     )
     st.info(t("info_expedite_disclaimer"))
 
-with quality_tab:
-    q1, q2, q3, q4 = st.columns(4)
-    q1.metric(t("metric_included_reports"), quality.included_report_count)
-    q2.metric(t("metric_excluded_reports"), quality.excluded_report_count)
-    q3.metric(t("metric_unknown_form"), quality.unknown_form_count)
-    q4.metric(t("metric_unknown_status"), quality.unknown_status_count)
-    review_total = metrics.historic_pending_count + metrics.historic_reviewed_count
-    review_percent = (
-        metrics.historic_reviewed_count / review_total * 100 if review_total else 0.0
+with estimates_tab:
+    st.subheader(t("subheader_case_estimates"))
+    st.caption(t("caption_case_estimates"))
+    filed_date_input = st.date_input(
+        t("filed_date_label"),
+        value=None,
+        max_value=snapshot.generated_at.date(),
+        key="estimates_filed_date",
     )
-    st.metric(t("metric_historic_review_complete"), f"{review_percent:.1f}%")
-    quality_rows = pd.DataFrame(
-        [
-            {
-                t("column_quality_signal"): t("quality_signal_missing_filed_date"),
-                t("column_count"): quality.reports_missing_filed_date,
-            },
-            {
-                t("column_quality_signal"): t("quality_signal_missing_decision_date"),
-                t("column_count"): quality.reports_missing_decision_date,
-            },
-            {
-                t("column_quality_signal"): t("quality_signal_conflicting_evidence"),
-                t("column_count"): quality.conflicting_evidence_count,
-            },
-        ]
-    )
-    st.plotly_chart(
-        px.bar(
-            quality_rows,
-            x=t("column_quality_signal"),
-            y=t("column_count"),
-            title=t("chart_title_quality_signals"),
-        ),
-        width="stretch",
-    )
+    if filed_date_input is None:
+        st.info(t("estimates_pick_date_prompt"))
+    else:
+        for window_days, window_key in (
+            (7, "window_1week_label"),
+            (30, "window_1month_label"),
+            (90, "window_3month_label"),
+        ):
+            st.markdown(f"**{t('estimates_window_heading', window=t(window_key))}**")
+            table = _case_estimates_table(
+                metrics.filed_case_observations,
+                filed_date_input,
+                window_days,
+                snapshot.generated_at.date(),
+            )
+            if table is None:
+                st.info(t("estimates_no_data"))
+            else:
+                st.dataframe(table, hide_index=True, width="stretch")
 
 with personal_tab:
     st.caption(t("caption_personal_tab"))
@@ -851,6 +923,7 @@ with personal_tab:
                 counts.by_form_type,
                 key_label=t("column_form"),
                 title=t("chart_title_self_tracked_by_form"),
+                caption=t("caption_self_tracked_by_form"),
             )
         with right:
             _bar(
@@ -858,11 +931,13 @@ with personal_tab:
                 key_label=t("column_current_status"),
                 title=t("chart_title_self_tracked_status"),
                 horizontal=True,
+                caption=t("caption_self_tracked_status"),
             )
         _bar(
             counts.by_filed_month,
             key_label=t("column_reported_month"),
             title=t("chart_title_self_tracked_by_month"),
+            caption=t("caption_self_tracked_by_month"),
         )
         st.caption(
             t(
