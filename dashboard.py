@@ -40,7 +40,7 @@ except ImportError:
 from i18n import WINDOW_ORDER, label, render_language_selector, t, window_label
 
 st.set_page_config(
-    page_title="USCIS Community Case Tracker",
+    page_title="Community Immigration Case Tracker",
     page_icon="📊",
     layout="wide",
 )

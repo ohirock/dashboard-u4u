@@ -148,19 +148,28 @@ _LABELS: dict[str, dict[str, str]] = {
 
 _STRINGS: dict[str, dict[str, str]] = {
     "en": {
-        "title": "USCIS Community Case Tracker",
+        "title": "Community Immigration Case Tracker",
         "subtitle": "Processing-time trends from human-reviewed, self-reported case updates.",
         "subheader_about": "What is this?",
         "about_body": (
             "This site tracks how long Uniting for Ukraine cases (TPS, "
             "Re-parole, work permits) are taking, based on updates people "
             "voluntarily share in a Ukrainian community Telegram channel. "
-            "It is **not** an official USCIS website and has no connection "
-            "to USCIS or the US government.\n\n"
+            "It is **not** an official government website and has no "
+            "connection to any U.S. government agency.\n\n"
+            "**This site is for informational purposes only.** It does not "
+            "constitute advice or a guarantee of any kind, and nothing "
+            "shown here can be used as evidence or support for an "
+            "expedite request or any other official submission.\n\n"
+            "This reflects only the subset of cases people chose to "
+            "report here — real-world outcomes and timing can differ, "
+            "and this is not a complete or representative picture of "
+            "overall case processing.\n\n"
             "Every update is checked by a human or matched against dated "
-            "screenshots before it's counted — never raw messages, photos, "
-            "receipt numbers, or names, only dates and case types. So far "
-            "this covers **{report_count:,}** case updates from "
+            "screenshots before it's counted. We never collect raw "
+            "messages, photos, receipt numbers, or names — only dates "
+            "and case types are ever recorded. So far this covers "
+            "**{report_count:,}** case updates from "
             "**{case_observation_count:,}** reported cases."
         ),
         "api_unavailable_info": (
@@ -275,13 +284,13 @@ _STRINGS: dict[str, dict[str, str]] = {
         "info_no_breakdown_data": "No data is available for this breakdown yet.",
         "caption_reports_by_month": "How many case updates were reported in each month.",
         "caption_decisions_by_month": "How many final decisions (approved or denied) happened in each month.",
-        "chart_title_reports_by_form": "Reports by USCIS form",
+        "chart_title_reports_by_form": "Reports by application type",
         "chart_title_reports_by_subtype": "Reports by case subtype",
         "column_form": "Form",
         "column_case_subtype": "Case subtype",
         "chart_title_status_distribution": "Current status distribution",
         "column_current_status": "Current status",
-        "caption_reports_by_form": "Which USCIS form each reported case is about.",
+        "caption_reports_by_form": "Which application type each reported case is about.",
         "caption_reports_by_subtype": "A more specific breakdown of the case types above.",
         "caption_status_distribution": "Where all reported cases currently stand (pending, approved, denied, etc.).",
         "subheader_expedite_comparison": "Processing time with and without reported expedite",
@@ -310,8 +319,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         ),
         "caption_personal_tab": (
             "Anonymous, aggregate-only counts from the separate personal "
-            "tracking bot. No names, comments, receipt numbers, or Telegram "
-            "identities are ever included here."
+            "tracking bot. Names, comments, receipt numbers, and Telegram "
+            "identities are never collected for this feature."
         ),
         "info_no_personal_data": "Community self-tracking aggregates are not available yet.",
         "metric_self_tracked_submissions": "Self-tracked submissions",
@@ -327,16 +336,19 @@ _STRINGS: dict[str, dict[str, str]] = {
         "days_not_available": "Not available",
         "subheader_how_to_interpret": "Good to know before you read the charts",
         "how_to_interpret_body": (
-            "- This is community-reported data, not an official USCIS sample — treat "
-            "trends as a general sense of pace, not a guarantee.\n"
+            "- This is community-reported data from a subset of people who chose to "
+            "share updates, not an official or complete sample — treat trends as a "
+            "general sense of pace, not a guarantee, and real outcomes may differ.\n"
+            "- This site is informational only: nothing here should be used as evidence "
+            "or support for an expedite request or any other official submission.\n"
             "- If one report covers a family (e.g. \"3 of us got approved\"), all 3 "
             "cases count.\n"
             "- Only reviewed community reports are counted, and only ones with clear, "
             "non-conflicting dates.\n"
             "- Small weeks/months can look noisy — a couple of unusual cases can swing "
             "the number.\n"
-            "- Nothing private is ever shown here: no messages, photos, receipt numbers, "
-            "or names.\n"
+            "- We never collect or store private details in the first place — no "
+            "messages, photos, receipt numbers, or names are ever gathered.\n"
         ),
         "refresh_countdown_before": "Data refresh will happen in",
         "refresh_countdown_after": "— reopen this page after that to check.",
@@ -363,7 +375,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "estimates_pick_date_prompt": "Pick a filed date above to see estimates.",
     },
     "uk": {
-        "title": "Спільнотний трекер справ USCIS",
+        "title": "Спільнотний трекер імміграційних справ",
         "subtitle": (
             "Тенденції термінів розгляду на основі перевірених людиною, "
             "самостійно поданих оновлень справ."
@@ -373,12 +385,22 @@ _STRINGS: dict[str, dict[str, str]] = {
             "Цей сайт відстежує, скільки часу займають справи Uniting for "
             "Ukraine (TPS, Re-parole, дозволи на роботу), на основі "
             "оновлень, якими люди добровільно діляться в україномовному "
-            "спільнотному каналі в Telegram. Це **не** офіційний сайт "
-            "USCIS і не має жодного зв'язку з USCIS чи урядом США.\n\n"
+            "спільнотному каналі в Telegram. Це **не** офіційний "
+            "державний сайт і не має жодного зв'язку з жодним державним "
+            "органом США.\n\n"
+            "**Цей сайт створено виключно в інформаційних цілях.** Він "
+            "не є порадою чи гарантією жодного роду, і нічого з "
+            "показаного тут не можна використовувати як доказ чи "
+            "підтвердження для запиту на прискорення чи будь-якого "
+            "іншого офіційного звернення.\n\n"
+            "Тут відображено лише ту частину справ, про яку люди "
+            "вирішили розповісти, — реальні результати й терміни можуть "
+            "відрізнятися, і це не повна чи репрезентативна картина "
+            "загального розгляду справ.\n\n"
             "Кожне оновлення перевіряє людина або звіряє з датованими "
-            "скриншотами, перш ніж воно потрапляє в статистику — сюди "
-            "ніколи не потрапляють самі повідомлення, фото, номери "
-            "квитанцій чи імена, лише дати й типи справ. Наразі тут "
+            "скриншотами, перш ніж воно потрапляє в статистику. Ми "
+            "ніколи не збираємо самі повідомлення, фото, номери "
+            "квитанцій чи імена — лише дати й типи справ. Наразі тут "
             "зібрано **{report_count:,}** оновлень по **{case_observation_count:,}** "
             "заявлених справах."
         ),
@@ -495,13 +517,13 @@ _STRINGS: dict[str, dict[str, str]] = {
         "info_no_breakdown_data": "Дані для цього розподілу ще недоступні.",
         "caption_reports_by_month": "Скільки оновлень по справах було подано щомісяця.",
         "caption_decisions_by_month": "Скільки остаточних рішень (схвалено чи відмовлено) було щомісяця.",
-        "chart_title_reports_by_form": "Звіти за формою USCIS",
+        "chart_title_reports_by_form": "Звіти за типом заяви",
         "chart_title_reports_by_subtype": "Звіти за підтипом справи",
         "column_form": "Форма",
         "column_case_subtype": "Підтип справи",
         "chart_title_status_distribution": "Розподіл поточних статусів",
         "column_current_status": "Поточний статус",
-        "caption_reports_by_form": "На яку форму USCIS подана кожна заявлена справа.",
+        "caption_reports_by_form": "На який тип заяви подана кожна заявлена справа.",
         "caption_reports_by_subtype": "Детальніший розподіл типів справ вище.",
         "caption_status_distribution": "На якому етапі зараз перебувають усі заявлені справи (на розгляді, схвалено, відмовлено тощо).",
         "subheader_expedite_comparison": "Час обробки з прискоренням і без нього",
@@ -530,8 +552,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         ),
         "caption_personal_tab": (
             "Анонімні, лише агреговані підрахунки з окремого бота особистого "
-            "відстеження. Тут ніколи не буде імен, коментарів, номерів "
-            "квитанцій чи ідентифікаторів Telegram."
+            "відстеження. Імена, коментарі, номери квитанцій та "
+            "ідентифікатори Telegram для цієї функції ніколи не збираються."
         ),
         "info_no_personal_data": "Агреговані дані особистого відстеження ще недоступні.",
         "metric_self_tracked_submissions": "Самостійно відстежені заявки",
@@ -547,16 +569,21 @@ _STRINGS: dict[str, dict[str, str]] = {
         "days_not_available": "Немає даних",
         "subheader_how_to_interpret": "Корисно знати перед переглядом графіків",
         "how_to_interpret_body": (
-            "- Це дані спільноти, подані самостійно, а не офіційна вибірка USCIS — "
-            "сприймайте тенденції як загальне уявлення про темп, а не гарантію.\n"
+            "- Це дані спільноти від частини людей, які вирішили поділитися "
+            "оновленнями, а не офіційна чи повна вибірка — сприймайте тенденції як "
+            "загальне уявлення про темп, а не гарантію; реальні результати можуть "
+            "відрізнятися.\n"
+            "- Цей сайт має виключно інформаційний характер: ніщо тут не можна "
+            "використовувати як доказ чи підтвердження для запиту на прискорення чи "
+            "будь-якого іншого офіційного звернення.\n"
             "- Якщо один звіт стосується родини (наприклад, «3 з нас отримали "
             "схвалення»), враховуються всі 3 справи.\n"
             "- Враховуються лише перевірені звіти спільноти, і лише ті, що мають чіткі, "
             "несуперечливі дати.\n"
             "- Малі тижні чи місяці можуть виглядати «шумними» — кілька нетипових "
             "справ можуть сильно змінити цифру.\n"
-            "- Тут ніколи не показуються приватні дані: жодних повідомлень, фото, "
-            "номерів квитанцій чи імен.\n"
+            "- Ми ніколи не збираємо й не зберігаємо приватні дані: жодні повідомлення, "
+            "фото, номери квитанцій чи імена не потрапляють до системи.\n"
         ),
         "refresh_countdown_before": "Оновлення даних відбудеться через",
         "refresh_countdown_after": "— поверніться на цю сторінку пізніше, щоб перевірити.",
