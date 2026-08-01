@@ -554,6 +554,8 @@ except PublicDashboardUnavailable as error:
     st.info(t("api_unavailable_info"))
     st.stop()
 
+st.error(t("disclaimer_no_evidence"))
+
 with st.expander(t("subheader_about"), expanded=True):
     st.markdown(
         t(

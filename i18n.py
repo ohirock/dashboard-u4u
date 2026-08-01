@@ -151,16 +151,18 @@ _STRINGS: dict[str, dict[str, str]] = {
         "title": "Community Immigration Case Tracker",
         "subtitle": "Processing-time trends from human-reviewed, self-reported case updates.",
         "subheader_about": "What is this?",
+        "disclaimer_no_evidence": (
+            "⚠️ **Informational purposes only.** This site does not constitute "
+            "advice or a guarantee of any kind. **Nothing shown here can be used "
+            "as evidence or support for an expedite request or any other "
+            "official submission.**"
+        ),
         "about_body": (
             "This site tracks how long Uniting for Ukraine cases (TPS, "
             "Re-parole, work permits) are taking, based on updates people "
             "voluntarily share in a Ukrainian community Telegram channel. "
             "It is **not** an official government website and has no "
             "connection to any U.S. government agency.\n\n"
-            "**This site is for informational purposes only.** It does not "
-            "constitute advice or a guarantee of any kind, and nothing "
-            "shown here can be used as evidence or support for an "
-            "expedite request or any other official submission.\n\n"
             "This reflects only the subset of cases people chose to "
             "report here — real-world outcomes and timing can differ, "
             "and this is not a complete or representative picture of "
@@ -381,6 +383,12 @@ _STRINGS: dict[str, dict[str, str]] = {
             "самостійно поданих оновлень справ."
         ),
         "subheader_about": "Що це таке?",
+        "disclaimer_no_evidence": (
+            "⚠️ **Виключно в інформаційних цілях.** Цей сайт не є порадою чи "
+            "гарантією жодного роду. **Нічого з показаного тут не можна "
+            "використовувати як доказ чи підтвердження для запиту на "
+            "прискорення чи будь-якого іншого офіційного звернення.**"
+        ),
         "about_body": (
             "Цей сайт відстежує, скільки часу займають справи Uniting for "
             "Ukraine (TPS, Re-parole, дозволи на роботу), на основі "
@@ -388,11 +396,6 @@ _STRINGS: dict[str, dict[str, str]] = {
             "спільнотному каналі в Telegram. Це **не** офіційний "
             "державний сайт і не має жодного зв'язку з жодним державним "
             "органом США.\n\n"
-            "**Цей сайт створено виключно в інформаційних цілях.** Він "
-            "не є порадою чи гарантією жодного роду, і нічого з "
-            "показаного тут не можна використовувати як доказ чи "
-            "підтвердження для запиту на прискорення чи будь-якого "
-            "іншого офіційного звернення.\n\n"
             "Тут відображено лише ту частину справ, про яку люди "
             "вирішили розповісти, — реальні результати й терміни можуть "
             "відрізнятися, і це не повна чи репрезентативна картина "
