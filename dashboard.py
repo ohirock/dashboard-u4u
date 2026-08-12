@@ -165,16 +165,17 @@ def _render_section_link_support() -> None:
 
   function requestedSection() {{
     const url = new URL(window.parent.location.href);
+    try {{
+      const group = groupForHash(decodeURIComponent(url.hash.slice(1)));
+      if (group) return group.section;
+    }} catch (_) {{
+      // Fall through to the server-readable section parameter.
+    }}
     const querySection = url.searchParams.get("section");
     if (querySection && headingGroups.some((item) => item.section === querySection)) {{
       return querySection;
     }}
-    try {{
-      const group = groupForHash(decodeURIComponent(url.hash.slice(1)));
-      return group ? group.section : "";
-    }} catch (_) {{
-      return "";
-    }}
+    return "";
   }}
 
   function findHeading(doc, group) {{
@@ -187,14 +188,30 @@ def _render_section_link_support() -> None:
   }}
 
   function rewriteHeadingLinks(doc) {{
-    for (const group of headingGroups) {{
-      const heading = findHeading(doc, group);
-      const container = heading && heading.closest('[data-testid="stHeading"]');
-      if (!container) continue;
-      for (const link of container.querySelectorAll('a[href^="#"]')) {{
-        link.href = durableUrl(group.section);
+    for (const link of doc.querySelectorAll('a[href*="#"]')) {{
+      let group = null;
+      try {{
+        const url = new URL(link.getAttribute("href"), window.parent.location.href);
+        group = groupForHash(decodeURIComponent(url.hash.slice(1)));
+      }} catch (_) {{
+        continue;
       }}
+      if (group) link.href = durableUrl(group.section);
     }}
+  }}
+
+  function routeCurrentHash() {{
+    const url = new URL(window.parent.location.href);
+    if (!url.hash) return false;
+    let group = null;
+    try {{
+      group = groupForHash(decodeURIComponent(url.hash.slice(1)));
+    }} catch (_) {{
+      return false;
+    }}
+    if (!group) return false;
+    window.parent.location.replace(durableUrl(group.section));
+    return true;
   }}
 
   function activateAndScroll() {{
@@ -245,13 +262,22 @@ def _render_section_link_support() -> None:
 
   try {{
     window.parent.document.addEventListener("click", (event) => {{
-      const link = event.target.closest && event.target.closest('a[href^="#"]');
+      const link = event.target.closest && event.target.closest("a[href]");
       if (!link) return;
-      const group = groupForHash(link.getAttribute("href").slice(1));
+      let group = null;
+      try {{
+        const url = new URL(link.getAttribute("href"), window.parent.location.href);
+        group = groupForHash(decodeURIComponent(url.hash.slice(1)));
+      }} catch (_) {{
+        return;
+      }}
       if (!group) return;
       event.preventDefault();
       window.parent.location.assign(durableUrl(group.section));
     }}, true);
+    window.parent.addEventListener("hashchange", () => {{
+      if (!routeCurrentHash()) schedule();
+    }});
     new window.parent.MutationObserver(schedule).observe(window.parent.document.body, {{
       childList: true,
       subtree: true,
@@ -259,7 +285,7 @@ def _render_section_link_support() -> None:
   }} catch (_) {{
     // If browser scripting is restricted, query links still select the right tab.
   }}
-  schedule();
+  if (!routeCurrentHash()) schedule();
 }})();
 </script>
 """,
