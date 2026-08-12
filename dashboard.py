@@ -5,7 +5,7 @@ import json
 import os
 import re
 import unicodedata
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pandas as pd
 import plotly.express as px
@@ -522,8 +522,43 @@ def _bar(buckets, *, key_label, title, horizontal=False, caption=None):
         st.caption(caption)
 
 
+def _one_decimal(value: float | int | None) -> float | None:
+    """Round measured values consistently while preserving missing values."""
+
+    return None if value is None else round(float(value), 1)
+
+
+def _date_only(value: object) -> object:
+    """Render table dates without an unnecessary midnight timestamp."""
+
+    if isinstance(value, pd.Timestamp):
+        return value.strftime("%Y-%m-%d")
+    if isinstance(value, datetime | date):
+        return value.strftime("%Y-%m-%d")
+    return value
+
+
+def _display_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    """Apply the dashboard-wide table display policy."""
+
+    result = frame.copy()
+    for column in result.columns:
+        if pd.api.types.is_float_dtype(result[column]):
+            result[column] = result[column].round(1)
+        elif pd.api.types.is_datetime64_any_dtype(result[column]):
+            result[column] = result[column].dt.strftime("%Y-%m-%d")
+        elif pd.api.types.is_object_dtype(result[column]):
+            result[column] = result[column].map(_date_only)
+    return result
+
+
+def _dataframe(frame: pd.DataFrame) -> None:
+    st.dataframe(_display_frame(frame), hide_index=True, width="stretch")
+
+
 def _days(value: float | None) -> str:
-    return t("days_value", value=value) if value is not None else t("days_not_available")
+    rounded = _one_decimal(value)
+    return t("days_value", value=rounded) if rounded is not None else t("days_not_available")
 
 
 def _milestone_frame(rows) -> pd.DataFrame:
@@ -532,10 +567,10 @@ def _milestone_frame(rows) -> pd.DataFrame:
             {
                 t("column_case_type"): _label(row.case_family),
                 t("column_milestone"): _label(row.milestone),
-                t("column_average_days"): row.duration.average_days,
-                t("column_median_days"): row.duration.median_days,
-                t("column_first_quartile"): row.duration.first_quartile_days,
-                t("column_third_quartile"): row.duration.third_quartile_days,
+                t("column_average_days"): _one_decimal(row.duration.average_days),
+                t("column_median_days"): _one_decimal(row.duration.median_days),
+                t("column_first_quartile"): _one_decimal(row.duration.first_quartile_days),
+                t("column_third_quartile"): _one_decimal(row.duration.third_quartile_days),
                 t("column_cases"): row.duration.sample_size,
             }
             for row in rows
@@ -547,11 +582,11 @@ def _weekly_frame(rows) -> pd.DataFrame:
     return pd.DataFrame(
         [
             {
-                t("column_week"): row.week_start,
+                t("column_week"): row.week_start.isoformat(),
                 t("column_case_type"): _label(row.case_family),
                 t("column_milestone"): _label(row.milestone),
-                t("column_average_days"): row.duration.average_days,
-                t("column_median_days"): row.duration.median_days,
+                t("column_average_days"): _one_decimal(row.duration.average_days),
+                t("column_median_days"): _one_decimal(row.duration.median_days),
                 t("column_cases"): row.duration.sample_size,
             }
             for row in rows
@@ -594,10 +629,10 @@ def _pace_signals(rows) -> pd.DataFrame:
             {
                 t("column_case_type"): _label(family),
                 t("column_milestone"): _label(milestone),
-                t("column_latest_week"): latest.week_start,
-                t("column_latest_median"): latest.duration.median_days,
-                t("column_prior_baseline"): baseline,
-                t("column_change"): f"{change:+.0f}%",
+                t("column_latest_week"): latest.week_start.isoformat(),
+                t("column_latest_median"): _one_decimal(latest.duration.median_days),
+                t("column_prior_baseline"): _one_decimal(baseline),
+                t("column_change"): f"{change:+.1f}%",
                 t("column_signal"): signal,
                 t("column_latest_cases"): latest.duration.sample_size,
             }
@@ -670,7 +705,7 @@ def _decision_series(weekly_rows, family: str, *, monthly: bool) -> pd.DataFrame
                 {
                     "Period": row.week_start,
                     "Cases": row.duration.sample_size,
-                    "Days": row.duration.median_days,
+                    "Days": _one_decimal(row.duration.median_days),
                 }
                 for row in filtered
             ]
@@ -689,7 +724,7 @@ def _decision_series(weekly_rows, family: str, *, monthly: bool) -> pd.DataFrame
     grouped = raw.groupby("Period", as_index=False).agg(
         Cases=("Cases", "sum"), WeightedDays=("WeightedDays", "sum")
     )
-    grouped["Days"] = grouped["WeightedDays"] / grouped["Cases"]
+    grouped["Days"] = (grouped["WeightedDays"] / grouped["Cases"]).round(1)
     return grouped.drop(columns="WeightedDays").sort_values("Period").reset_index(drop=True)
 
 
@@ -747,10 +782,10 @@ def _decision_combo_chart(
         )
         flagged_rows.extend(
             {
-                t("column_period"): period,
-                t("column_days"): days,
+                t("column_period"): _date_only(period),
+                t("column_days"): _one_decimal(days),
                 t("column_signal"): signal_name,
-                t("column_change"): f"{change:+.0f}%",
+                t("column_change"): f"{change:+.1f}%",
             }
             for period, days, change in zip(xs, ys, changes)
         )
@@ -796,13 +831,13 @@ def _expedite_frame(rows) -> pd.DataFrame:
             {
                 t("column_case_type"): _label(row.case_family),
                 t("column_milestone"): _label(row.milestone),
-                t("column_expedite_median"): with_value.median_days,
-                t("column_expedite_average"): with_value.average_days,
+                t("column_expedite_median"): _one_decimal(with_value.median_days),
+                t("column_expedite_average"): _one_decimal(with_value.average_days),
                 t("column_expedite_cases"): with_value.sample_size,
-                t("column_no_expedite_median"): without_value.median_days,
-                t("column_no_expedite_average"): without_value.average_days,
+                t("column_no_expedite_median"): _one_decimal(without_value.median_days),
+                t("column_no_expedite_average"): _one_decimal(without_value.average_days),
                 t("column_no_expedite_cases"): without_value.sample_size,
-                t("column_median_difference"): difference,
+                t("column_median_difference"): _one_decimal(difference),
             }
         )
     return pd.DataFrame(result)
@@ -826,7 +861,7 @@ def _monthly_decision_chart(rows, family: str) -> None:
             {
                 "Month": row.month_start.strftime("%Y-%m"),
                 "Expedite": labels[row.with_expedite],
-                "Median days": row.duration.median_days,
+                "Median days": _one_decimal(row.duration.median_days),
                 "Cases": row.duration.sample_size,
             }
             for row in rows
@@ -950,7 +985,7 @@ _render_refresh_countdown(min(canonical_fetched_at, personal_fetched_at))
 age_hours = snapshot_age_hours(snapshot)
 freshness = snapshot.generated_at.strftime("%Y-%m-%d %H:%M UTC")
 if age_hours > 24:
-    st.warning(t("snapshot_stale", hours=age_hours, freshness=freshness))
+    st.warning(t("snapshot_stale", hours=_one_decimal(age_hours), freshness=freshness))
 else:
     st.caption(t("snapshot_fresh", version=snapshot.data_version, freshness=freshness))
 
@@ -966,19 +1001,24 @@ summary_2.metric(t("metric_decisions_this_week"), decisions.current_calendar_wee
 summary_3.metric(t("metric_decisions_this_month"), decisions.current_calendar_month)
 
 _section_heading("subheader", "subheader_filing_to_decision", "decision")
-r1, r2, r3, e1, e2, e3 = st.columns(6)
-r1.metric(
-    t("metric_reparole_average"),
-    _days(reparole_decision.average_days if reparole_decision else None),
-)
-r2.metric(
-    t("metric_reparole_median"),
-    _days(reparole_decision.median_days if reparole_decision else None),
-)
-r3.metric(t("metric_reparole_cases"), reparole_decision.sample_size if reparole_decision else 0)
-e1.metric(t("metric_ead_average"), _days(ead_decision.average_days if ead_decision else None))
-e2.metric(t("metric_ead_median"), _days(ead_decision.median_days if ead_decision else None))
-e3.metric(t("metric_ead_cases"), ead_decision.sample_size if ead_decision else 0)
+for average_key, median_key, cases_key, duration in (
+    ("metric_tps_average", "metric_tps_median", "metric_tps_cases", tps_decision),
+    (
+        "metric_reparole_average",
+        "metric_reparole_median",
+        "metric_reparole_cases",
+        reparole_decision,
+    ),
+    ("metric_ead_average", "metric_ead_median", "metric_ead_cases", ead_decision),
+):
+    average_column, median_column, cases_column = st.columns(3)
+    average_column.metric(
+        t(average_key), _days(duration.average_days if duration else None)
+    )
+    median_column.metric(
+        t(median_key), _days(duration.median_days if duration else None)
+    )
+    cases_column.metric(t(cases_key), duration.sample_size if duration else 0)
 
 _requested_section = st.query_params.get("section")
 _tab_labels = (
@@ -1017,8 +1057,8 @@ with speed_tab:
                 + t(
                     "typical_wait_sentence",
                     family=_label(family_key),
-                    low=family_decision.first_quartile_days,
-                    high=family_decision.third_quartile_days,
+                    low=_one_decimal(family_decision.first_quartile_days),
+                    high=_one_decimal(family_decision.third_quartile_days),
                     count=family_decision.sample_size,
                 )
             )
@@ -1063,9 +1103,7 @@ with speed_tab:
             flagged_frames.append(flagged)
     if flagged_frames:
         st.caption(t("caption_flagged_periods"))
-        st.dataframe(
-            pd.concat(flagged_frames, ignore_index=True), hide_index=True, width="stretch"
-        )
+        _dataframe(pd.concat(flagged_frames, ignore_index=True))
 
     _section_heading("subheader", "subheader_filed_vintage", "filings")
     window_options = list(WINDOW_ORDER)
@@ -1131,7 +1169,7 @@ with speed_tab:
             lambda value: order.get(value, len(order))
         )
         summary = summary.sort_values(["_order", t("column_case_type"), t("column_milestone")])
-        st.dataframe(summary.drop(columns="_order"), hide_index=True, width="stretch")
+        _dataframe(summary.drop(columns="_order"))
 
     weekly = _weekly_frame(metrics.weekly_milestone_durations)
     if not weekly.empty:
@@ -1187,7 +1225,7 @@ with speed_tab:
         if signals.empty:
             st.info(t("info_no_pace_signals"))
         else:
-            st.dataframe(signals, hide_index=True, width="stretch")
+            _dataframe(signals)
             st.caption(t("caption_pace_signals"))
 
     left, right = st.columns(2)
@@ -1242,7 +1280,7 @@ with expedite_tab:
     if comparison.empty:
         st.info(t("info_no_expedite_comparison"))
     else:
-        st.dataframe(comparison, hide_index=True, width="stretch")
+        _dataframe(comparison)
     heatmap_left, heatmap_right = st.columns(2)
     monthly_decision_durations = getattr(
         metrics,
@@ -1292,7 +1330,7 @@ with estimates_tab:
             if table is None:
                 st.info(t("estimates_no_data"))
             else:
-                st.dataframe(table, hide_index=True, width="stretch")
+                _dataframe(table)
 
 with personal_tab:
     st.caption(t("caption_personal_tab"))
