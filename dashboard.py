@@ -121,12 +121,17 @@ def _anchor_slug(value: str) -> str:
 def _section_heading(level: str, key: str, section: str) -> None:
     """Render a heading whose permalink is already a durable section URL."""
 
-    tag = {"title": "h1", "header": "h2", "subheader": "h3"}[level]
+    heading_class, aria_level = {
+        "title": ("u4u-title", 1),
+        "header": ("u4u-header", 2),
+        "subheader": ("u4u-subheader", 3),
+    }[level]
     language = st.query_params.get("lang") or "uk"
-    href = f"?lang={language}&section={section}"
+    href = html.escape(f"?lang={language}&section={section}", quote=True)
     st.markdown(
-        f'<{tag} id="{section}" class="u4u-section-heading">{html.escape(t(key))}'
-        f'<a class="u4u-section-link" href="{href}" target="_self">#</a></{tag}>',
+        f'<div id="{section}" class="u4u-section-heading {heading_class}" '
+        f'role="heading" aria-level="{aria_level}">{html.escape(t(key))}'
+        f'<a class="u4u-section-link" href="{href}" target="_self">#</a></div>',
         unsafe_allow_html=True,
     )
 
@@ -137,6 +142,24 @@ def _render_section_styles() -> None:
     st.markdown(
         """
 <style>
+.u4u-section-heading {
+  font-family: inherit;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+}
+.u4u-title {
+  font-size: 2.75rem;
+  margin: 0 0 0.5rem;
+}
+.u4u-header {
+  font-size: 2.25rem;
+  margin: 1rem 0 0.5rem;
+}
+.u4u-subheader {
+  font-size: 1.5rem;
+  margin: 1rem 0 0.5rem;
+}
 .u4u-section-heading .u4u-section-link {
   color: inherit;
   font-size: 0.62em;
