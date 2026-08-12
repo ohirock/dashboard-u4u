@@ -200,20 +200,6 @@ def _render_section_link_support() -> None:
     }}
   }}
 
-  function routeCurrentHash() {{
-    const url = new URL(window.parent.location.href);
-    if (!url.hash) return false;
-    let group = null;
-    try {{
-      group = groupForHash(decodeURIComponent(url.hash.slice(1)));
-    }} catch (_) {{
-      return false;
-    }}
-    if (!group) return false;
-    window.parent.location.replace(durableUrl(group.section));
-    return true;
-  }}
-
   function activateAndScroll() {{
     scheduled = false;
     let doc;
@@ -272,12 +258,8 @@ def _render_section_link_support() -> None:
         return;
       }}
       if (!group) return;
-      event.preventDefault();
-      window.parent.location.assign(durableUrl(group.section));
+      link.href = durableUrl(group.section);
     }}, true);
-    window.parent.addEventListener("hashchange", () => {{
-      if (!routeCurrentHash()) schedule();
-    }});
     new window.parent.MutationObserver(schedule).observe(window.parent.document.body, {{
       childList: true,
       subtree: true,
@@ -285,7 +267,7 @@ def _render_section_link_support() -> None:
   }} catch (_) {{
     // If browser scripting is restricted, query links still select the right tab.
   }}
-  if (!routeCurrentHash()) schedule();
+  schedule();
 }})();
 </script>
 """,
