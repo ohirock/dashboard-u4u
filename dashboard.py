@@ -1,6 +1,5 @@
 """Public Streamlit UI over the aggregate-only Oracle dashboard API."""
 
-import html
 import json
 import os
 import re
@@ -121,19 +120,12 @@ def _anchor_slug(value: str) -> str:
 def _section_heading(level: str, key: str, section: str) -> None:
     """Render a heading with one short, language-neutral section identifier."""
 
-    tag = {
-        "title": "h1",
-        "header": "h2",
-        "subheader": "h3",
+    renderer = {
+        "title": st.title,
+        "header": st.header,
+        "subheader": st.subheader,
     }[level]
-    language = st.query_params.get("lang") or "uk"
-    href = f"?lang={language}&section={section}"
-    st.markdown(
-        f'<{tag} id="{section}">{html.escape(t(key))} '
-        f'<a href="{href}" target="_self" aria-label="Section link">🔗</a>'
-        f'</{tag}>',
-        unsafe_allow_html=True,
-    )
+    renderer(t(key), anchor=section)
 
 
 def _render_section_link_support() -> None:
@@ -847,16 +839,12 @@ _requested_tab_key = _SECTION_TAB_KEYS.get(_requested_section)
 _requested_tab_label = t(_requested_tab_key) if _requested_tab_key else _tab_labels[0]
 
 _language = st.query_params.get("lang") or "uk"
-_tab_state_key = f"dashboard_tabs_{_language}"
-_request_state_key = f"dashboard_section_request_{_language}"
-if st.session_state.get(_request_state_key) != _requested_section:
-    st.session_state[_tab_state_key] = _requested_tab_label
-    st.session_state[_request_state_key] = _requested_section
+_tab_widget_key = f"dashboard_tabs_{_language}_{_requested_section or 'root'}"
 
 speed_tab, cases_tab, expedite_tab, estimates_tab, personal_tab, how_tab = st.tabs(
     _tab_labels,
-    key=_tab_state_key,
-    on_change="rerun",
+    default=_requested_tab_label,
+    key=_tab_widget_key,
 )
 
 with speed_tab:
