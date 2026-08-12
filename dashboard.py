@@ -134,8 +134,8 @@ def _section_heading(level: str, key: str, section: str) -> None:
     st.markdown(
         f'<div id="{section}" class="u4u-section-heading {heading_class}" '
         f'role="heading" aria-level="{aria_level}">{html.escape(t(key))}'
-        f'<a class="u4u-section-link" href="{href}" title="Copy link" '
-        f'aria-label="Copy section link">#</a></div>',
+        f'<span class="u4u-section-link" data-copy-url="{href}" role="button" '
+        f'tabindex="0" title="Copy link" aria-label="Copy section link">#</span></div>',
         unsafe_allow_html=True,
     )
 
@@ -166,6 +166,7 @@ def _render_section_styles() -> None:
 }
 .u4u-section-heading .u4u-section-link {
   color: inherit;
+  cursor: pointer;
   font-size: 0.62em;
   font-weight: 400;
   margin-left: 0.35rem;
@@ -199,12 +200,12 @@ def _render_section_scroll_support() -> None:
   if (!appWindow.__u4uSectionClipboardInstalled) {{
     appWindow.__u4uSectionClipboardInstalled = true;
     appDocument.addEventListener("click", async (event) => {{
-      const link = event.target.closest?.("a.u4u-section-link");
+      const link = event.target.closest?.(".u4u-section-link[data-copy-url]");
       if (!link) return;
 
       event.preventDefault();
       event.stopPropagation();
-      const url = link.href;
+      const url = link.dataset.copyUrl;
       let copied = false;
 
       try {{
@@ -230,6 +231,14 @@ def _render_section_scroll_support() -> None:
           link.setAttribute("aria-label", "Copy section link");
         }}, 1200);
       }}
+    }}, true);
+    appDocument.addEventListener("keydown", (event) => {{
+      const link = event.target.closest?.(".u4u-section-link[data-copy-url]");
+      if (!link || !["Enter", " "].includes(event.key)) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      link.click();
     }}, true);
   }}
 
