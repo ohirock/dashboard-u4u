@@ -467,18 +467,38 @@ def _load_personal_snapshot(base_url: str):
     return snapshot, datetime.now(UTC)
 
 
-def _render_refresh_countdown(fetched_at: datetime) -> None:
+def _next_wall_clock_mark(now: datetime, *, period_seconds: int) -> datetime:
+    """Smallest multiple of `period_seconds` past the hour, strictly after `now`.
+
+    Matches `apps/worker/main.py`'s `_next_dashboard_rebuild_mark` on the
+    backend — both compute the same schedule independently from the shared
+    wall clock (e.g. :00/:05/:10 for a 300s period), with no API call
+    between them.
+    """
+
+    epoch = now.replace(minute=0, second=0, microsecond=0)
+    elapsed_seconds = (now - epoch).total_seconds()
+    marks_elapsed = int(elapsed_seconds // period_seconds) + 1
+    return epoch + timedelta(seconds=marks_elapsed * period_seconds)
+
+
+def _render_refresh_countdown() -> None:
     """A purely informational, repeating countdown.
 
-    Communicates the underlying shared cache's refresh cadence — it never
-    reloads or reruns the page. Reopen the page after it reaches zero to
-    see whether new data arrived. `fetched_at` reflects when the server-wide
-    cache was last populated, so this countdown is identical for every
-    visitor at any given moment, not reset by one user's page reload.
+    Shows time until the next wall-clock-aligned mark (e.g. :00/:05/:10),
+    matching the backend worker's own rebuild schedule (see
+    `apps/worker/main.py`) — computed independently from the current time,
+    with no API call to ask when the last/next rebuild actually happened.
+    It never reloads or reruns the page; reopen the page after it reaches
+    zero to see whether new data arrived. Since it's derived purely from
+    wall-clock time, every visitor sees the same countdown at any given
+    moment.
     """
 
     period_seconds = PAGE_DATA_CACHE_TTL_SECONDS
-    next_refresh_at = fetched_at + timedelta(seconds=period_seconds)
+    next_refresh_at = _next_wall_clock_mark(
+        datetime.now(UTC), period_seconds=period_seconds
+    )
     st.iframe(
         f"""
         <div style="font-family:'Source Sans Pro',sans-serif;font-size:0.8rem;
@@ -997,7 +1017,7 @@ try:
         os.environ,
         secret_value=_secret_api_url(),
     )
-    snapshot, canonical_fetched_at = _load_snapshot(api_base_url, _selected_source)
+    snapshot, _canonical_fetched_at = _load_snapshot(api_base_url, _selected_source)
 except PublicDashboardUnavailable as error:
     st.error(str(error))
     st.info(t("api_unavailable_info"))
@@ -1016,8 +1036,8 @@ with st.expander(t("subheader_about"), expanded=True):
 
 # Loaded once here (not inside the personal tab) so one global countdown can
 # cover every cached data source on the page, including the personal tab's.
-personal_snapshot, personal_fetched_at = _load_personal_snapshot(api_base_url)
-_render_refresh_countdown(min(canonical_fetched_at, personal_fetched_at))
+personal_snapshot, _personal_fetched_at = _load_personal_snapshot(api_base_url)
+_render_refresh_countdown()
 
 age_hours = snapshot_age_hours(snapshot)
 freshness = snapshot.generated_at.strftime("%Y-%m-%d %H:%M UTC")
