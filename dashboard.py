@@ -189,7 +189,7 @@ def _render_section_scroll_support() -> None:
 
     section = st.query_params.get("section")
     scroll_section = section if section in _SECTION_HEADING_KEYS else ""
-    st.html(
+    st.iframe(
         f"""
 <script>
 (() => {{
@@ -197,9 +197,18 @@ def _render_section_scroll_support() -> None:
   const appWindow = window.parent;
   const appDocument = appWindow.document;
 
-  if (!appWindow.__u4uSectionClipboardInstalled) {{
-    appWindow.__u4uSectionClipboardInstalled = true;
-    appDocument.addEventListener("click", async (event) => {{
+  if (appWindow.__u4uSectionClipboardClickHandler) {{
+    appDocument.removeEventListener(
+      "click", appWindow.__u4uSectionClipboardClickHandler, true
+    );
+  }}
+  if (appWindow.__u4uSectionClipboardKeyHandler) {{
+    appDocument.removeEventListener(
+      "keydown", appWindow.__u4uSectionClipboardKeyHandler, true
+    );
+  }}
+
+  const copyHandler = async (event) => {{
       const link = event.target.closest?.(".u4u-section-link[data-copy-url]");
       if (!link) return;
 
@@ -231,16 +240,22 @@ def _render_section_scroll_support() -> None:
           link.setAttribute("aria-label", "Copy section link");
         }}, 1200);
       }}
-    }}, true);
-    appDocument.addEventListener("keydown", (event) => {{
-      const link = event.target.closest?.(".u4u-section-link[data-copy-url]");
-      if (!link || !["Enter", " "].includes(event.key)) return;
+  }};
 
-      event.preventDefault();
-      event.stopPropagation();
-      link.click();
-    }}, true);
-  }}
+  const keyHandler = (event) => {{
+    const link = event.target.closest?.(".u4u-section-link[data-copy-url]");
+    if (!link || !["Enter", " "].includes(event.key)) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    link.click();
+  }};
+
+  appWindow.__u4uSectionClipboardClickHandler = copyHandler;
+  appWindow.__u4uSectionClipboardKeyHandler = keyHandler;
+  appDocument.addEventListener("click", copyHandler, true);
+  appDocument.addEventListener("keydown", keyHandler, true);
+  appWindow.__u4uSectionClipboardInstalled = true;
 
   let attempts = 0;
   function scrollToSection() {{
@@ -255,7 +270,7 @@ def _render_section_scroll_support() -> None:
 }})();
 </script>
 """,
-        unsafe_allow_javascript=True,
+        height=1,
     )
 
 def _render_section_link_support() -> None:
