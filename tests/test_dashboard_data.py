@@ -147,6 +147,7 @@ class DashboardDataTests(unittest.TestCase):
             requests[0].get_header("X-u4u-dashboard-schema"),
             "5",
         )
+        self.assertIn("source=published", requests[0].full_url)
         self.assertEqual(snapshot.metrics.report_count, 1)
         cohorts = snapshot.metrics.recent_decision_filed_cohorts
         self.assertEqual(len(cohorts), 1)
@@ -161,6 +162,27 @@ class DashboardDataTests(unittest.TestCase):
             fetch_dashboard_snapshot(
                 DEFAULT_PUBLIC_API_BASE_URL,
                 opener=lambda *_args, **_kwargs: FakeResponse(invalid),
+            )
+
+    def test_source_parameter_is_requested_and_validated(self) -> None:
+        requests = []
+
+        def opener(request, **_kwargs):
+            requests.append(request)
+            return FakeResponse(snapshot_document())
+
+        fetch_dashboard_snapshot(
+            DEFAULT_PUBLIC_API_BASE_URL,
+            source="all",
+            opener=opener,
+        )
+        self.assertIn("source=all", requests[0].full_url)
+
+        with self.assertRaises(ValueError):
+            fetch_dashboard_snapshot(
+                DEFAULT_PUBLIC_API_BASE_URL,
+                source="bogus",
+                opener=opener,
             )
 
     def test_network_error_is_sanitized(self) -> None:

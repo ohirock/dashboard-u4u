@@ -41,7 +41,16 @@ except ImportError:
     except ImportError:
         fetch_personal_dashboard_snapshot = None
 
-from i18n import WINDOW_ORDER, label, render_language_selector, t, translations, window_label
+from i18n import (
+    WINDOW_ORDER,
+    get_source,
+    label,
+    render_language_selector,
+    render_source_selector,
+    t,
+    translations,
+    window_label,
+)
 
 st.set_page_config(
     page_title="Community Immigration Case Tracker",
@@ -431,16 +440,18 @@ def _secret_api_url() -> str | None:
 
 
 @st.cache_data(ttl=PAGE_DATA_CACHE_TTL_SECONDS, show_spinner=False)
-def _load_snapshot(base_url: str):
+def _load_snapshot(base_url: str, source: str):
     """Return (snapshot, fetched_at).
 
     `st.cache_data` is a server-wide cache shared by every visitor, not a
     per-browser-session value — `fetched_at` is captured once, when this
     cache entry is (re)populated, so the same value and countdown are seen
     by all concurrent users and survive any single user's manual refresh.
+    Keyed on `source` too, so each of the three selector positions gets its
+    own cache entry instead of colliding.
     """
 
-    return fetch_dashboard_snapshot(base_url), datetime.now(UTC)
+    return fetch_dashboard_snapshot(base_url, source=source), datetime.now(UTC)
 
 
 @st.cache_data(ttl=PAGE_DATA_CACHE_TTL_SECONDS, show_spinner=False)
@@ -960,9 +971,11 @@ def _case_estimates_table(observations, filed_date, window_days: int, generated_
 
 
 _render_section_styles()
-_lang_col, _join_col, _ = st.columns([1, 1, 4])
+_lang_col, _source_col, _join_col, _ = st.columns([1, 1.4, 1, 2.6])
 with _lang_col:
     render_language_selector()
+with _source_col:
+    _selected_source = render_source_selector()
 with _join_col:
     st.link_button(
         t("join_button"),
@@ -979,7 +992,7 @@ try:
         os.environ,
         secret_value=_secret_api_url(),
     )
-    snapshot, canonical_fetched_at = _load_snapshot(api_base_url)
+    snapshot, canonical_fetched_at = _load_snapshot(api_base_url, _selected_source)
 except PublicDashboardUnavailable as error:
     st.error(str(error))
     st.info(t("api_unavailable_info"))
@@ -1018,6 +1031,16 @@ summary_1, summary_2, summary_3 = st.columns(3)
 summary_1.metric(t("metric_case_observations"), metrics.case_observation_count)
 summary_2.metric(t("metric_decisions_this_week"), decisions.current_calendar_week)
 summary_3.metric(t("metric_decisions_this_month"), decisions.current_calendar_month)
+
+if metrics.source_counts is not None:
+    st.caption(
+        t(
+            "source_provenance",
+            total=metrics.case_observation_count,
+            published=metrics.source_counts.published_case_observation_count,
+            self_tracked=metrics.source_counts.self_tracked_case_observation_count,
+        )
+    )
 
 _section_heading("subheader", "subheader_filing_to_decision", "decision")
 for average_key, median_key, cases_key, duration in (

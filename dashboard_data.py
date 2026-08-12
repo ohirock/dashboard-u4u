@@ -7,7 +7,7 @@ from collections.abc import Callable, Mapping
 from datetime import UTC, date, datetime
 from typing import Any, Self
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlencode, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -17,6 +17,8 @@ DEFAULT_PUBLIC_API_BASE_URL = "https://141-148-77-229.sslip.io"
 DASHBOARD_PATH = "/api/public/dashboard"
 PERSONAL_DASHBOARD_PATH = "/api/public/personal-dashboard"
 MAX_SNAPSHOT_BYTES = 1_048_576
+DASHBOARD_SOURCES = ("published", "self_tracked", "all")
+DEFAULT_DASHBOARD_SOURCE = "published"
 
 
 class PublicDashboardUnavailable(RuntimeError):
@@ -109,6 +111,14 @@ class DashboardFiledCaseObservation(StrictModel):
     weight: int = Field(ge=1)
 
 
+class DashboardSourceCounts(StrictModel):
+    """Case-observation counts by originating source. Only present on the
+    combined ("all") snapshot."""
+
+    published_case_observation_count: int = Field(ge=0)
+    self_tracked_case_observation_count: int = Field(ge=0)
+
+
 class DashboardMetrics(StrictModel):
     report_count: int = Field(ge=0)
     case_observation_count: int = Field(ge=0)
@@ -128,6 +138,7 @@ class DashboardMetrics(StrictModel):
         DashboardRecentDecisionFiledCohortByWindow, ...
     ] = ()
     filed_case_observations: tuple[DashboardFiledCaseObservation, ...] = ()
+    source_counts: DashboardSourceCounts | None = None
     expedite_request_count: int = Field(ge=0)
     expedite_by_channel: tuple[DashboardCountBucket, ...]
     reports_with_expedite: int = Field(ge=0)
@@ -218,6 +229,7 @@ def public_api_base_url(
 def fetch_dashboard_snapshot(
     base_url: str,
     *,
+    source: str = DEFAULT_DASHBOARD_SOURCE,
     opener: Callable[..., Any] = urlopen,
     timeout_seconds: float = 10.0,
 ) -> DashboardSnapshot:
@@ -226,8 +238,10 @@ def fetch_dashboard_snapshot(
     normalized = public_api_base_url({PUBLIC_API_URL_ENV: base_url})
     if timeout_seconds <= 0 or timeout_seconds > 30:
         raise ValueError("timeout_seconds must be greater than 0 and at most 30")
+    if source not in DASHBOARD_SOURCES:
+        raise ValueError(f"unsupported dashboard source: {source}")
     request = Request(
-        normalized + DASHBOARD_PATH,
+        normalized + DASHBOARD_PATH + "?" + urlencode({"source": source}),
         headers={
             "Accept": "application/json",
             "X-U4U-Dashboard-Schema": "5",

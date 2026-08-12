@@ -46,6 +46,45 @@ def render_language_selector() -> str:
     return chosen_code
 
 
+SOURCES: tuple[str, ...] = ("all", "published", "self_tracked")
+_SOURCE_QUERY_PARAM = "source"
+_SOURCE_SESSION_KEY = "source"
+_DEFAULT_SOURCE = "all"
+
+
+def get_source() -> str:
+    query_value = st.query_params.get(_SOURCE_QUERY_PARAM)
+    if query_value in SOURCES:
+        return query_value
+    session_value = st.session_state.get(_SOURCE_SESSION_KEY)
+    if session_value in SOURCES:
+        return session_value
+    return _DEFAULT_SOURCE
+
+
+def render_source_selector() -> str:
+    """Render the selector and return the source code in effect this run."""
+
+    current = get_source()
+    label_keys = {
+        "all": "source_all",
+        "published": "source_published",
+        "self_tracked": "source_self_tracked",
+    }
+    labels = [t(label_keys[code]) for code in SOURCES]
+    chosen_label = st.selectbox(
+        t("source_selector_label"),
+        labels,
+        index=SOURCES.index(current),
+        key="_source_selector",
+    )
+    chosen_code = SOURCES[labels.index(chosen_label)]
+    st.session_state[_SOURCE_SESSION_KEY] = chosen_code
+    if st.query_params.get(_SOURCE_QUERY_PARAM) != chosen_code:
+        st.query_params[_SOURCE_QUERY_PARAM] = chosen_code
+    return chosen_code
+
+
 def t(key: str, **kwargs) -> str:
     """Look up `key` in the current language's string table."""
 
@@ -189,6 +228,14 @@ _STRINGS: dict[str, dict[str, str]] = {
         "metric_case_observations": "Case observations",
         "metric_decisions_this_week": "Final decisions this week",
         "metric_decisions_this_month": "Final decisions this month",
+        "source_selector_label": "Data source",
+        "source_published": "Published case timelines",
+        "source_self_tracked": "Self-tracked cases",
+        "source_all": "All community data",
+        "source_provenance": (
+            "{total:,} case observations: {published:,} published, "
+            "{self_tracked:,} self-tracked."
+        ),
         "subheader_filing_to_decision": "Filing to final decision by case type",
         "metric_tps_average": "TPS average",
         "metric_tps_median": "TPS median",
@@ -546,6 +593,14 @@ _STRINGS: dict[str, dict[str, str]] = {
         "metric_case_observations": "Спостереження по справах",
         "metric_decisions_this_week": "Рішення цього тижня",
         "metric_decisions_this_month": "Рішення цього місяця",
+        "source_selector_label": "Джерело даних",
+        "source_published": "Опубліковані історії справ",
+        "source_self_tracked": "Справи на особистому відстеженні",
+        "source_all": "Усі дані спільноти",
+        "source_provenance": (
+            "{total:,} спостережень по справах: {published:,} опубліковано, "
+            "{self_tracked:,} з особистого відстеження."
+        ),
         "subheader_filing_to_decision": "Від подання до остаточного рішення за типом кейсу",
         "metric_tps_average": "TPS, середнє",
         "metric_tps_median": "TPS, медіана",
