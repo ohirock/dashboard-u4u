@@ -184,7 +184,7 @@ _STRINGS: dict[str, dict[str, str]] = {
             "The public aggregate service is temporarily unavailable. "
             "No private case data is stored in this dashboard."
         ),
-        "snapshot_stale": "The latest snapshot is {hours:.1f} hours old ({freshness}).",
+        "snapshot_stale": "The latest snapshot is {hours} hours old ({freshness}).",
         "snapshot_fresh": "Snapshot {version} generated {freshness}.",
         "metric_case_observations": "Case observations",
         "metric_decisions_this_week": "Final decisions this week",
@@ -363,7 +363,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "info_no_milestone_samples": "No complete filing-to-milestone samples are available yet.",
         "typical_wait_sentence": (
             "**{family}**: most reported cases are decided within "
-            "**{low:.1f}–{high:.1f} days** of filing (25th–75th percentile, "
+            "**{low}–{high} days** of filing (25th–75th percentile, "
             "{count} cases)."
         ),
         "typical_wait_unavailable": "**{family}**: not enough decided cases yet to estimate a typical range.",
@@ -450,7 +450,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "caption_self_tracked_status": "Current status of the self-tracked submissions.",
         "caption_self_tracked_by_month": "When the self-tracked submissions were filed.",
         "caption_personal_generated": "Snapshot generated {generated_at}.",
-        "days_value": "{value:.1f} days",
+        "days_value": "{value} days",
         "days_not_available": "Not available",
         "subheader_how_to_interpret": "Good to know before you read the charts",
         "how_to_interpret_body": (
@@ -527,7 +527,7 @@ _STRINGS: dict[str, dict[str, str]] = {
             "Публічний агрегований сервіс тимчасово недоступний. "
             "Ці дані не містять приватної інформації про справи."
         ),
-        "snapshot_stale": "Останній знімок даних має вік {hours:.1f} год. ({freshness}).",
+        "snapshot_stale": "Останній знімок даних має вік {hours} год. ({freshness}).",
         "snapshot_fresh": "Знімок {version}, згенеровано {freshness}.",
         "metric_case_observations": "Спостереження по справах",
         "metric_decisions_this_week": "Рішення цього тижня",
@@ -712,7 +712,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "info_no_milestone_samples": "Ще немає повних вибірок від подання до етапу.",
         "typical_wait_sentence": (
             "**{family}**: більшість заявлених справ вирішуються протягом "
-            "**{low:.1f}–{high:.1f} днів** від подання (25-й–75-й перцентиль, "
+            "**{low}–{high} днів** від подання (25-й–75-й перцентиль, "
             "{count} справ)."
         ),
         "typical_wait_unavailable": "**{family}**: ще недостатньо вирішених справ, щоб оцінити типовий діапазон.",
@@ -799,7 +799,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "caption_self_tracked_status": "Поточний статус самостійно відстежених заявок.",
         "caption_self_tracked_by_month": "Коли були подані самостійно відстежені заявки.",
         "caption_personal_generated": "Знімок згенеровано {generated_at}.",
-        "days_value": "{value:.1f} дн.",
+        "days_value": "{value} дн.",
         "days_not_available": "Немає даних",
         "subheader_how_to_interpret": "Корисно знати перед переглядом графіків",
         "how_to_interpret_body": (

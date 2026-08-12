@@ -522,10 +522,27 @@ def _bar(buckets, *, key_label, title, horizontal=False, caption=None):
         st.caption(caption)
 
 
-def _one_decimal(value: float | int | None) -> float | None:
-    """Round measured values consistently while preserving missing values."""
+def _one_decimal(value: float | int | None) -> int | float | None:
+    """Round to one decimal and omit a redundant zero decimal."""
 
-    return None if value is None else round(float(value), 1)
+    if value is None or pd.isna(value):
+        return None
+    rounded = round(float(value), 1)
+    return int(rounded) if rounded.is_integer() else rounded
+
+
+def _one_decimal_text(value: float | int | None) -> str:
+    """Return the compact dashboard representation of a measured value."""
+
+    rounded = _one_decimal(value)
+    return "" if rounded is None else str(rounded)
+
+
+def _signed_percent(value: float | int) -> str:
+    """Render a signed percentage using the compact decimal policy."""
+
+    rounded = _one_decimal(value)
+    return f"{rounded:+}%"
 
 
 def _date_only(value: object) -> object:
@@ -544,7 +561,7 @@ def _display_frame(frame: pd.DataFrame) -> pd.DataFrame:
     result = frame.copy()
     for column in result.columns:
         if pd.api.types.is_float_dtype(result[column]):
-            result[column] = result[column].round(1)
+            result[column] = result[column].map(_one_decimal_text)
         elif pd.api.types.is_datetime64_any_dtype(result[column]):
             result[column] = result[column].dt.strftime("%Y-%m-%d")
         elif pd.api.types.is_object_dtype(result[column]):
@@ -632,7 +649,7 @@ def _pace_signals(rows) -> pd.DataFrame:
                 t("column_latest_week"): latest.week_start.isoformat(),
                 t("column_latest_median"): _one_decimal(latest.duration.median_days),
                 t("column_prior_baseline"): _one_decimal(baseline),
-                t("column_change"): f"{change:+.1f}%",
+                t("column_change"): _signed_percent(change),
                 t("column_signal"): signal,
                 t("column_latest_cases"): latest.duration.sample_size,
             }
@@ -785,7 +802,7 @@ def _decision_combo_chart(
                 t("column_period"): _date_only(period),
                 t("column_days"): _one_decimal(days),
                 t("column_signal"): signal_name,
-                t("column_change"): f"{change:+.1f}%",
+                t("column_change"): _signed_percent(change),
             }
             for period, days, change in zip(xs, ys, changes)
         )
