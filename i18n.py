@@ -53,6 +53,12 @@ def t(key: str, **kwargs) -> str:
     return template.format(**kwargs) if kwargs else template
 
 
+def translations(key: str) -> tuple[str, ...]:
+    """Return each distinct translation for a static UI string."""
+
+    return tuple(dict.fromkeys(strings[key] for strings in _STRINGS.values()))
+
+
 def label(value: str) -> str:
     """Translate a data-driven case/status/milestone code for display."""
 

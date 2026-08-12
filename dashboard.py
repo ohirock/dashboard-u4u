@@ -1,6 +1,9 @@
 """Public Streamlit UI over the aggregate-only Oracle dashboard API."""
 
+import json
 import os
+import re
+import unicodedata
 from datetime import UTC, datetime, timedelta
 
 import pandas as pd
@@ -37,7 +40,7 @@ except ImportError:
     except ImportError:
         fetch_personal_dashboard_snapshot = None
 
-from i18n import WINDOW_ORDER, label, render_language_selector, t, window_label
+from i18n import WINDOW_ORDER, label, render_language_selector, t, translations, window_label
 
 st.set_page_config(
     page_title="Community Immigration Case Tracker",
@@ -49,6 +52,146 @@ st.set_page_config(
 # canonical snapshot and the personal-tracking snapshot alike), so there is
 # one consistent number instead of two different ones to reconcile.
 PAGE_DATA_CACHE_TTL_SECONDS = 300
+
+
+_ANCHOR_HEADING_KEYS = (
+    "title",
+    "subheader_filing_to_decision",
+    "subheader_recent_decisions",
+    "subheader_recent_pace",
+    "subheader_filed_vintage",
+    "subheader_typical_time",
+    "subheader_weekly_trend",
+    "subheader_pace_signals",
+    "subheader_expedite_comparison",
+    "subheader_case_estimates",
+    "how_title",
+    "how_expected_title",
+    "how_confirmation_title",
+    "how_stored_title",
+    "how_pii_title",
+    "how_pii_extracted_title",
+    "subheader_how_to_interpret",
+)
+
+_UKRAINIAN_TRANSLITERATION = str.maketrans(
+    {
+        "а": "a", "б": "b", "в": "v", "г": "h", "ґ": "g", "д": "d",
+        "е": "e", "є": "ye", "ж": "zh", "з": "z", "и": "y", "і": "i",
+        "ї": "yi", "й": "y", "к": "k", "л": "l", "м": "m", "н": "n",
+        "о": "o", "п": "p", "р": "r", "с": "s", "т": "t", "у": "u",
+        "ф": "f", "х": "kh", "ц": "ts", "ч": "ch", "ш": "sh",
+        "щ": "shch", "ь": "", "ю": "yu", "я": "ya",
+    }
+)
+_UKRAINIAN_TRANSLITERATION[ord("\u0438")] = "i"
+
+
+def _anchor_slug(value: str) -> str:
+    """Approximate Streamlit's share-link slug for either supported language."""
+
+    transliterated = value.casefold().translate(_UKRAINIAN_TRANSLITERATION)
+    ascii_value = unicodedata.normalize("NFKD", transliterated).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "-", ascii_value).strip("-")
+
+
+def _render_anchor_tab_router() -> None:
+    """Open the tab containing a URL-fragment target, then scroll to it."""
+
+    heading_groups = [
+        {
+            "hashes": [_anchor_slug(text) for text in translations(key)],
+            "currentText": t(key),
+        }
+        for key in _ANCHOR_HEADING_KEYS
+    ]
+    groups_json = json.dumps(heading_groups, ensure_ascii=False).replace("</", "<\\/")
+    st.html(
+        f"""
+<script>
+(() => {{
+  const headingGroups = {groups_json};
+  let attempts = 0;
+  let scheduled = false;
+
+  function normalizedHash() {{
+    try {{
+      return decodeURIComponent(window.parent.location.hash.slice(1)).toLowerCase();
+    }} catch (_) {{
+      return "";
+    }}
+  }}
+
+  function findHeading(doc, hash) {{
+    const direct = doc.getElementById(hash);
+    if (direct) return direct;
+
+    const group = headingGroups.find((item) => item.hashes.includes(hash));
+    if (!group) return null;
+    return Array.from(doc.querySelectorAll("h1,h2,h3,h4,h5,h6")).find(
+      (heading) => heading.textContent.trim() === group.currentText
+    ) || null;
+  }}
+
+  function activateAndScroll() {{
+    scheduled = false;
+    const hash = normalizedHash();
+    if (!hash) return true;
+
+    let doc;
+    try {{
+      doc = window.parent.document;
+    }} catch (_) {{
+      return true;
+    }}
+    const target = findHeading(doc, hash);
+    if (!target) return false;
+
+    const panel = target.closest('[data-testid="stTabPanel"]');
+    if (panel) {{
+      const tabsContainer = panel.closest('[data-testid="stTabs"]');
+      if (tabsContainer) {{
+        const panels = Array.from(
+          tabsContainer.querySelectorAll('[data-testid="stTabPanel"]')
+        );
+        const tabs = Array.from(
+          tabsContainer.querySelectorAll('[data-testid="stTab"]')
+        );
+        const tab = tabs[panels.indexOf(panel)];
+        if (tab && tab.getAttribute("aria-selected") !== "true") tab.click();
+      }}
+    }}
+
+    window.parent.setTimeout(
+      () => target.scrollIntoView({{ behavior: "auto", block: "start" }}),
+      panel ? 100 : 0
+    );
+    return true;
+  }}
+
+  function schedule() {{
+    if (scheduled) return;
+    scheduled = true;
+    window.parent.requestAnimationFrame(() => {{
+      if (!activateAndScroll() && attempts++ < 80) window.parent.setTimeout(schedule, 100);
+    }});
+  }}
+
+  try {{
+    window.parent.addEventListener("hashchange", () => {{ attempts = 0; schedule(); }});
+    new window.parent.MutationObserver(schedule).observe(window.parent.document.body, {{
+      childList: true,
+      subtree: true,
+    }});
+  }} catch (_) {{
+    // If iframe access is restricted, the dashboard still renders normally.
+  }}
+  schedule();
+}})();
+</script>
+""",
+        unsafe_allow_javascript=True,
+    )
 
 
 def _secret_api_url() -> str | None:
@@ -983,6 +1126,8 @@ with how_tab:
     st.markdown(t("how_pii_extracted_intro"))
     st.success(t("how_pii_extracted_example"))
     st.markdown(t("how_pii_excluded"))
+
+_render_anchor_tab_router()
 
 st.divider()
 st.subheader(t("subheader_how_to_interpret"))
