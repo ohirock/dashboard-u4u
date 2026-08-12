@@ -83,6 +83,9 @@ _ANCHOR_HEADING_KEYS = (
     "how_pii_extracted_title",
     "how_disclaimer_title",
     "subheader_how_to_interpret",
+    "tab_speed",
+    "tab_cases",
+    "tab_personal",
 )
 
 _SECTION_HEADING_KEYS = dict(
@@ -91,7 +94,7 @@ _SECTION_HEADING_KEYS = dict(
             "overview", "decision", "recent", "pace", "filings", "typical",
             "trends", "signals", "expedite", "estimates", "how", "input",
             "confirm", "stored", "privacy", "extracted", "notice",
-            "interpretation",
+            "interpretation", "speed", "cases", "self_tracking",
         ),
         _ANCHOR_HEADING_KEYS,
         strict=True,
@@ -99,10 +102,12 @@ _SECTION_HEADING_KEYS = dict(
 )
 _SECTION_TAB_KEYS = {
     **{section: "tab_speed" for section in (
-        "recent", "pace", "filings", "typical", "trends", "signals",
+        "speed", "recent", "pace", "filings", "typical", "trends", "signals",
     )},
     "expedite": "tab_expedite",
     "estimates": "tab_estimates",
+    "cases": "tab_cases",
+    "self_tracking": "tab_personal",
     **{section: "tab_how_it_works" for section in (
         "how", "input", "confirm", "stored", "privacy", "extracted", "notice",
     )},
@@ -1084,6 +1089,7 @@ speed_tab, cases_tab, expedite_tab, estimates_tab, personal_tab, how_tab = st.ta
 )
 
 with speed_tab:
+    _section_heading("subheader", "tab_speed", "speed")
     for family_key, family_decision in (
         ("tps", tps_decision),
         ("re_parole", reparole_decision),
@@ -1287,6 +1293,7 @@ with speed_tab:
         )
 
 with cases_tab:
+    _section_heading("subheader", "tab_cases", "cases")
     left, right = st.columns(2)
     with left:
         _bar(
@@ -1375,6 +1382,7 @@ with estimates_tab:
                 _dataframe(table)
 
 with personal_tab:
+    _section_heading("subheader", "tab_personal", "self_tracking")
     st.caption(t("caption_personal_tab"))
     if personal_snapshot is None:
         st.info(t("info_no_personal_data"))
