@@ -127,11 +127,11 @@ def _section_heading(level: str, key: str, section: str) -> None:
         "subheader": ("u4u-subheader", 3),
     }[level]
     language = st.query_params.get("lang") or "uk"
-    href = html.escape(f"?lang={language}&section={section}", quote=True)
+    href = html.escape(f"/?lang={language}&section={section}", quote=True)
     st.markdown(
         f'<div id="{section}" class="u4u-section-heading {heading_class}" '
         f'role="heading" aria-level="{aria_level}">{html.escape(t(key))}'
-        f'<a class="u4u-section-link" href="{href}" target="_self">#</a></div>',
+        f'<a class="u4u-section-link" href="{href}" target="_top">#</a></div>',
         unsafe_allow_html=True,
     )
 
