@@ -195,6 +195,113 @@ _STRINGS: dict[str, dict[str, str]] = {
         "tab_expedite": "Expedite impact",
         "tab_estimates": "My case estimate",
         "tab_personal": "Community self-tracking",
+        "tab_how_it_works": "How it works",
+        "join_button": "Join",
+        "how_title": "How your message becomes community statistics",
+        "how_intro": (
+            "Your report helps show real processing times for Re-parole, TPS, "
+            "and EAD without publishing your personal information.\n\n"
+            "1. **You describe the case in your own words** in the Telegram bot.\n"
+            "2. **Google Gemini analyzes the text** and identifies the form, "
+            "status, dates, and case milestones.\n"
+            "3. **The bot shows you a clear summary** so you can check the result.\n"
+            "4. **Only structured case facts are saved** after confirmation.\n"
+            "5. **The dashboard combines many reports** into community-wide trends."
+        ),
+        "how_expected_title": "What we expect you to send",
+        "how_expected_intro": (
+            "Write naturally in one message. You do not need a special format. "
+            "For example:"
+        ),
+        "how_expected_example": (
+            "Filed I-131 for Re-parole on February 15, 2025.\n"
+            "Biometrics were on March 11.\n"
+            "On April 2 we contacted a Congress member about expediting.\n"
+            "Conditional approval arrived on July 24.\n"
+            "Final approval arrived on January 30, 2026.\n"
+            "There are two applicants in our family."
+        ),
+        "how_confirmation_title": "What the bot shows for confirmation",
+        "how_confirmation_intro": (
+            "The wording may vary, but the confirmation will look approximately like this:"
+        ),
+        "how_confirmation_example": (
+            "**Form:** I-131\n\n**Case type:** Re-parole\n\n"
+            "**Status:** Approved\n\n**Applicants:** 2\n\n"
+            "**Filed:** February 15, 2025\n\n"
+            "**Biometrics:** March 11, 2025\n\n"
+            "**Expedite request:** April 2, 2025 — via Congress member\n\n"
+            "**Conditional approval:** July 24, 2025\n\n"
+            "**Approved:** January 30, 2026"
+        ),
+        "how_stored_title": "What is saved",
+        "how_stored_intro": (
+            "We save the case facts, not the free-form message. In non-technical "
+            "terms, the saved record looks like this:"
+        ),
+        "how_stored_example": (
+            "**Form:** I-131  \n**Case type:** Re-parole  \n"
+            "**Status:** Approved  \n**Filed:** February 15, 2025  \n"
+            "**Biometrics:** March 11, 2025  \n"
+            "**Expedite:** Via Congress member, April 2, 2025  \n"
+            "**Conditional approval:** July 24, 2025  \n"
+            "**Final approval:** January 30, 2026  \n**Applicants:** 2"
+        ),
+        "how_not_stored": (
+            "The original free-form message is used for analysis, but this project "
+            "does not keep it as part of the statistics. Names, dates of birth, "
+            "addresses, contact details, A-numbers, and USCIS receipt numbers are "
+            "not fields in the saved analytics record. If you save a case for later "
+            "updates, the bot may keep a protected reference to your Telegram account "
+            "only so it can find your cases; that reference is never shown publicly."
+        ),
+        "how_pii_title": "Do not send personal information",
+        "how_pii_warning": (
+            "Remove personal and sensitive information before sending your message. "
+            "Automated detection can make mistakes."
+        ),
+        "how_pii_intro": (
+            "Here is an example of what **not** to send. Every name, number, address, "
+            "and date below is fictional:"
+        ),
+        "how_pii_example": (
+            "My name is John Example Doe.\n"
+            "Date of birth: January 1, 1900.\n"
+            "Address: 000 Example Street.\n"
+            "Email: john@example.invalid.\n"
+            "A-number: A000000000.\n"
+            "Receipt number: IOE0000000000.\n"
+            "Filed I-765 on April 10, 2025.\n"
+            "On April 15 I was told that my previous biometrics would be reused.\n"
+            "The case was approved on September 1, 2025.\n"
+            "The card was produced on September 3, 2025."
+        ),
+        "how_pii_handling": (
+            "If the bot detects personal information, it cancels processing and asks "
+            "you to remove it and submit the description again. Detection is not "
+            "perfect. If personal information is not detected, the full message may "
+            "be processed by Google Gemini during analysis. You should therefore "
+            "remove it yourself before sending anything."
+        ),
+        "how_pii_extracted_title": "What would be extracted from that message",
+        "how_pii_extracted_intro": (
+            "If the personal information was not detected automatically, Gemini may "
+            "analyze the full message, but only these case facts are extracted for "
+            "the saved analytics record:"
+        ),
+        "how_pii_extracted_example": (
+            "**Form:** I-765  \n**Case type:** EAD  \n"
+            "**EAD basis:** Not specified  \n**Status:** Approved  \n"
+            "**Filed:** April 10, 2025  \n"
+            "**Biometrics reused:** April 15, 2025  \n"
+            "**Approved:** September 1, 2025  \n"
+            "**Card produced:** September 3, 2025  \n**Applicants:** 1"
+        ),
+        "how_pii_excluded": (
+            "The fictional name, date of birth, address, email, A-number, receipt "
+            "number, and original message are not included in the structured analytics "
+            "record."
+        ),
         "subheader_recent_decisions": "Recent final decisions",
         "metric_last_7_days": "Last 7 days",
         "metric_previous_calendar_week": "Previous calendar week",
@@ -433,6 +540,118 @@ _STRINGS: dict[str, dict[str, str]] = {
         "metric_previous_calendar_week": "Попередній календарний тиждень",
         "metric_current_week": "Поточний тиждень",
         "metric_current_month": "Поточний місяць",
+        "tab_how_it_works": "Як це працює",
+        "join_button": "Долучитися",
+        "how_title": "Як ваше повідомлення стає частиною статистики",
+        "how_intro": (
+            "Ваше повідомлення допомагає показувати реальні строки розгляду "
+            "Re-parole, TPS та EAD — без публікації особистої інформації.\n\n"
+            "1. **Ви описуєте справу звичайними словами** в Telegram-боті.\n"
+            "2. **Google Gemini аналізує текст** і знаходить форму, статус, дати "
+            "та етапи справи.\n"
+            "3. **Бот показує зрозумілий підсумок**, щоб ви могли все перевірити.\n"
+            "4. **Після підтвердження зберігаються лише структуровані факти.**\n"
+            "5. **Дашборд об’єднує багато повідомлень** у загальну статистику."
+        ),
+        "how_expected_title": "Яке повідомлення ми очікуємо",
+        "how_expected_intro": (
+            "Напишіть усе природно одним повідомленням. Спеціальний формат не "
+            "потрібен. Наприклад:"
+        ),
+        "how_expected_example": (
+            "Подали I-131 на Re-parole 15 лютого 2025 року.\n"
+            "Біометрія була 11 березня.\n"
+            "2 квітня звернулися до конгресмена щодо пришвидшення.\n"
+            "Умовне схвалення отримали 24 липня.\n"
+            "Фінальне схвалення — 30 січня 2026 року.\n"
+            "У сім’ї двоє аплікантів."
+        ),
+        "how_confirmation_title": "Що бот покаже для підтвердження",
+        "how_confirmation_intro": (
+            "Формулювання може трохи відрізнятися, але підсумок виглядатиме "
+            "приблизно так:"
+        ),
+        "how_confirmation_example": (
+            "**Форма:** I-131\n\n**Тип справи:** Re-parole\n\n"
+            "**Статус:** схвалено\n\n**Кількість аплікантів:** 2\n\n"
+            "**Подано:** 15 лютого 2025 року\n\n"
+            "**Біометрія:** 11 березня 2025 року\n\n"
+            "**Запит на пришвидшення:** 2 квітня 2025 року — через конгресмена\n\n"
+            "**Умовне схвалення:** 24 липня 2025 року\n\n"
+            "**Схвалено:** 30 січня 2026 року"
+        ),
+        "how_stored_title": "Що буде збережено",
+        "how_stored_intro": (
+            "Ми зберігаємо факти про справу, а не початкове повідомлення. "
+            "Звичайною мовою збережений запис виглядає так:"
+        ),
+        "how_stored_example": (
+            "**Форма:** I-131  \n**Тип справи:** Re-parole  \n"
+            "**Статус:** схвалено  \n**Подано:** 15 лютого 2025 року  \n"
+            "**Біометрія:** 11 березня 2025 року  \n"
+            "**Пришвидшення:** через конгресмена, 2 квітня 2025 року  \n"
+            "**Умовне схвалення:** 24 липня 2025 року  \n"
+            "**Фінальне схвалення:** 30 січня 2026 року  \n"
+            "**Кількість аплікантів:** 2"
+        ),
+        "how_not_stored": (
+            "Початковий текст використовується для аналізу, але наш проєкт не "
+            "зберігає його як частину статистики. Ім’я, дата народження, адреса, "
+            "контактні дані, A-number і номер квитанції USCIS не є полями "
+            "збереженого аналітичного запису. Якщо ви зберігаєте справу для "
+            "подальших оновлень, бот може зберігати захищене посилання на ID "
+            "Telegram-акаунта лише для пошуку ваших справ; воно ніколи не "
+            "показується публічно."
+        ),
+        "how_pii_title": "Не надсилайте особисті дані",
+        "how_pii_warning": (
+            "Видаліть особисту й конфіденційну інформацію перед надсиланням. "
+            "Автоматична перевірка може помилятися."
+        ),
+        "how_pii_intro": (
+            "Ось приклад того, що **не потрібно** надсилати. Усі імена, номери, "
+            "адреси та дати нижче вигадані:"
+        ),
+        "how_pii_example": (
+            "Мене звати John Example Doe.\n"
+            "Дата народження: 1 січня 1900 року.\n"
+            "Адреса: 000 Example Street.\n"
+            "Email: john@example.invalid.\n"
+            "A-number: A000000000.\n"
+            "Receipt number: IOE0000000000.\n"
+            "Подав I-765 10 квітня 2025 року.\n"
+            "15 квітня отримав повідомлення, що попередню біометрію буде "
+            "використано повторно.\n"
+            "Справу схвалили 1 вересня 2025 року.\n"
+            "Картку виготовили 3 вересня 2025 року."
+        ),
+        "how_pii_handling": (
+            "Якщо бот помітить особисту інформацію, він скасує обробку та "
+            "попросить видалити її й надіслати опис повторно. Автоматична "
+            "перевірка недосконала. Якщо особисту інформацію не буде помічено, "
+            "повний текст може бути оброблений Google Gemini під час аналізу. "
+            "Тому найнадійніше — видалити її самостійно ще до надсилання."
+        ),
+        "how_pii_extracted_title": "Що буде витягнуто з такого повідомлення",
+        "how_pii_extracted_intro": (
+            "Якщо особисту інформацію не було помічено автоматично, Gemini може "
+            "проаналізувати повний текст, але для збереженого аналітичного запису "
+            "буде витягнуто лише такі факти про справу:"
+        ),
+        "how_pii_extracted_example": (
+            "**Форма:** I-765  \n**Тип справи:** EAD  \n"
+            "**Підстава EAD:** не вказана  \n**Статус:** схвалено  \n"
+            "**Подано:** 10 квітня 2025 року  \n"
+            "**Біометрію використано повторно:** 15 квітня 2025 року  \n"
+            "**Схвалено:** 1 вересня 2025 року  \n"
+            "**Картку виготовлено:** 3 вересня 2025 року  \n"
+            "**Кількість аплікантів:** 1"
+        ),
+        "how_pii_excluded": (
+            "Вигадані ім’я, дата народження, адреса, email, A-number, номер "
+            "квитанції та початковий текст не входять до структурованого "
+            "аналітичного запису."
+        ),
         "subheader_recent_pace": "Нещодавній темп за типом справи",
         "caption_recent_pace": (
             "Стовпці показують, скільки було рішень; лінія — скільки часу вони "

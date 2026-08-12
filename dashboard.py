@@ -536,9 +536,16 @@ def _case_estimates_table(observations, filed_date, window_days: int, generated_
     return pd.DataFrame(rows) if rows else None
 
 
-_lang_col, _ = st.columns([1, 5])
+_lang_col, _join_col, _ = st.columns([1, 1, 4])
 with _lang_col:
     render_language_selector()
+with _join_col:
+    st.link_button(
+        t("join_button"),
+        "https://t.me/u4u_personal_tracking_bot",
+        type="primary",
+        width="stretch",
+    )
 
 st.title(t("title"))
 st.caption(t("subtitle"))
@@ -603,13 +610,14 @@ e1.metric(t("metric_ead_average"), _days(ead_decision.average_days if ead_decisi
 e2.metric(t("metric_ead_median"), _days(ead_decision.median_days if ead_decision else None))
 e3.metric(t("metric_ead_cases"), ead_decision.sample_size if ead_decision else 0)
 
-speed_tab, cases_tab, expedite_tab, estimates_tab, personal_tab = st.tabs(
+speed_tab, cases_tab, expedite_tab, estimates_tab, personal_tab, how_tab = st.tabs(
     (
         t("tab_speed"),
         t("tab_cases"),
         t("tab_expedite"),
         t("tab_estimates"),
         t("tab_personal"),
+        t("tab_how_it_works"),
     )
 )
 
@@ -947,6 +955,34 @@ with personal_tab:
                 generated_at=personal_snapshot.generated_at.strftime("%Y-%m-%d %H:%M UTC"),
             )
         )
+
+with how_tab:
+    st.header(t("how_title"))
+    st.markdown(t("how_intro"))
+
+    st.subheader(t("how_expected_title"))
+    st.markdown(t("how_expected_intro"))
+    st.code(t("how_expected_example"), language=None, wrap_lines=True)
+
+    st.subheader(t("how_confirmation_title"))
+    st.markdown(t("how_confirmation_intro"))
+    st.info(t("how_confirmation_example"))
+
+    st.subheader(t("how_stored_title"))
+    st.markdown(t("how_stored_intro"))
+    st.success(t("how_stored_example"))
+    st.markdown(t("how_not_stored"))
+
+    st.subheader(t("how_pii_title"))
+    st.warning(t("how_pii_warning"))
+    st.markdown(t("how_pii_intro"))
+    st.code(t("how_pii_example"), language=None, wrap_lines=True)
+    st.markdown(t("how_pii_handling"))
+
+    st.subheader(t("how_pii_extracted_title"))
+    st.markdown(t("how_pii_extracted_intro"))
+    st.success(t("how_pii_extracted_example"))
+    st.markdown(t("how_pii_excluded"))
 
 st.divider()
 st.subheader(t("subheader_how_to_interpret"))
