@@ -72,6 +72,7 @@ _ANCHOR_HEADING_KEYS = (
     "how_stored_title",
     "how_pii_title",
     "how_pii_extracted_title",
+    "how_disclaimer_title",
     "subheader_how_to_interpret",
 )
 
@@ -80,7 +81,8 @@ _SECTION_HEADING_KEYS = dict(
         (
             "overview", "decision", "recent", "pace", "filings", "typical",
             "trends", "signals", "expedite", "estimates", "how", "input",
-            "confirm", "stored", "privacy", "extracted", "interpretation",
+            "confirm", "stored", "privacy", "extracted", "notice",
+            "interpretation",
         ),
         _ANCHOR_HEADING_KEYS,
         strict=True,
@@ -93,7 +95,7 @@ _SECTION_TAB_KEYS = {
     "expedite": "tab_expedite",
     "estimates": "tab_estimates",
     **{section: "tab_how_it_works" for section in (
-        "how", "input", "confirm", "stored", "privacy", "extracted",
+        "how", "input", "confirm", "stored", "privacy", "extracted", "notice",
     )},
 }
 
@@ -1418,6 +1420,9 @@ with how_tab:
     st.markdown(t("how_pii_extracted_intro"))
     st.success(t("how_pii_extracted_example"))
     st.markdown(t("how_pii_excluded"))
+
+    _section_heading("subheader", "how_disclaimer_title", "notice")
+    st.warning(t("how_disclaimer_body"))
 
 _render_section_scroll_support()
 

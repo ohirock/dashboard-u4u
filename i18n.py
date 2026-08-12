@@ -311,6 +311,20 @@ _STRINGS: dict[str, dict[str, str]] = {
             "number, and original message are not included in the structured analytics "
             "record."
         ),
+        "how_disclaimer_title": "Important: automated analysis and age requirement",
+        "how_disclaimer_body": (
+            "This service is only for people aged 18 or older. The Telegram bot uses "
+            "Google Gemini as a technical tool to turn free-form text into structured "
+            "case facts. The analysis is automated and may contain errors.\n\n"
+            "The bot is not USCIS and does not provide legal advice. Do not rely on "
+            "its output to determine your rights, deadlines, or next steps. Check all "
+            "recognized information before confirming it and use official USCIS "
+            "sources or a qualified professional when appropriate.\n\n"
+            "We do not guarantee the accuracy, completeness, or availability of the "
+            "automated analysis. To the extent permitted by law, the project authors "
+            "and administrators are not responsible for decisions or losses resulting "
+            "from use of the automated output."
+        ),
         "subheader_recent_decisions": "Recent final decisions",
         "metric_last_7_days": "Last 7 days",
         "metric_previous_calendar_week": "Previous calendar week",
@@ -663,6 +677,22 @@ _STRINGS: dict[str, dict[str, str]] = {
             "Вигадані ім’я, дата народження, адреса, email, A-number, номер "
             "квитанції та початковий текст не входять до структурованого "
             "аналітичного запису."
+        ),
+        "how_disclaimer_title": "Важливо: автоматичний аналіз і вимога 18+",
+        "how_disclaimer_body": (
+            "Сервіс призначений лише для осіб віком від 18 років. Telegram-бот "
+            "використовує Google Gemini як технічний інструмент, щоб перетворити "
+            "довільний текст на структуровані факти про справу. Аналіз виконується "
+            "автоматично та може містити помилки.\n\n"
+            "Бот не є сервісом USCIS і не надає юридичних консультацій. Не "
+            "покладайтеся на його результат для визначення ваших прав, строків або "
+            "подальших дій. Перевірте всі розпізнані дані перед підтвердженням, а "
+            "за потреби використовуйте офіційні джерела USCIS або зверніться до "
+            "кваліфікованого фахівця.\n\n"
+            "Ми не гарантуємо точність, повноту або доступність автоматичного "
+            "аналізу. У межах, дозволених законом, автори й адміністратори проєкту "
+            "не відповідають за рішення або збитки, що виникли через використання "
+            "автоматичного результату."
         ),
         "subheader_recent_pace": "Нещодавній темп за типом справи",
         "caption_recent_pace": (
