@@ -74,6 +74,28 @@ _ANCHOR_HEADING_KEYS = (
     "subheader_how_to_interpret",
 )
 
+_SECTION_HEADING_KEYS = dict(
+    zip(
+        (
+            "overview", "decision", "recent", "pace", "filings", "typical",
+            "trends", "signals", "expedite", "estimates", "how", "input",
+            "confirm", "stored", "privacy", "extracted", "interpretation",
+        ),
+        _ANCHOR_HEADING_KEYS,
+        strict=True,
+    )
+)
+_SECTION_TAB_KEYS = {
+    **{section: "tab_speed" for section in (
+        "recent", "pace", "filings", "typical", "trends", "signals",
+    )},
+    "expedite": "tab_expedite",
+    "estimates": "tab_estimates",
+    **{section: "tab_how_it_works" for section in (
+        "how", "input", "confirm", "stored", "privacy", "extracted",
+    )},
+}
+
 _UKRAINIAN_TRANSLITERATION = str.maketrans(
     {
         "а": "a", "б": "b", "в": "v", "г": "h", "ґ": "g", "д": "d",
@@ -95,56 +117,100 @@ def _anchor_slug(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", ascii_value).strip("-")
 
 
-def _render_anchor_tab_router() -> None:
-    """Open the tab containing a URL-fragment target, then scroll to it."""
+def _section_heading(level: str, key: str, section: str) -> None:
+    """Render a heading with one short, language-neutral section identifier."""
+
+    renderer = {
+        "title": st.title,
+        "header": st.header,
+        "subheader": st.subheader,
+    }[level]
+    renderer(t(key), anchor=section)
+
+
+def _render_section_link_support() -> None:
+    """Turn Streamlit heading fragments into durable section query links."""
 
     heading_groups = [
         {
-            "hashes": [_anchor_slug(text) for text in translations(key)],
+            "section": section,
+            "hashes": [section, *[_anchor_slug(text) for text in translations(key)]],
             "currentText": t(key),
         }
-        for key in _ANCHOR_HEADING_KEYS
+        for section, key in _SECTION_HEADING_KEYS.items()
     ]
     groups_json = json.dumps(heading_groups, ensure_ascii=False).replace("</", "<\\/")
+    current_language = st.query_params.get("lang") or "uk"
     st.html(
         f"""
 <script>
 (() => {{
   const headingGroups = {groups_json};
+  const currentLanguage = {json.dumps(current_language)};
   let attempts = 0;
   let scheduled = false;
 
-  function normalizedHash() {{
+  function groupForHash(hash) {{
+    const normalized = hash.toLowerCase();
+    return headingGroups.find((item) => item.hashes.includes(normalized)) || null;
+  }}
+
+  function durableUrl(section) {{
+    const url = new URL(window.parent.location.href);
+    url.searchParams.set("lang", currentLanguage);
+    url.searchParams.set("section", section);
+    url.hash = "";
+    return url.toString();
+  }}
+
+  function requestedSection() {{
+    const url = new URL(window.parent.location.href);
+    const querySection = url.searchParams.get("section");
+    if (querySection && headingGroups.some((item) => item.section === querySection)) {{
+      return querySection;
+    }}
     try {{
-      return decodeURIComponent(window.parent.location.hash.slice(1)).toLowerCase();
+      const group = groupForHash(decodeURIComponent(url.hash.slice(1)));
+      return group ? group.section : "";
     }} catch (_) {{
       return "";
     }}
   }}
 
-  function findHeading(doc, hash) {{
-    const direct = doc.getElementById(hash);
+  function findHeading(doc, group) {{
+    const direct = doc.getElementById(group.section);
     if (direct) return direct;
 
-    const group = headingGroups.find((item) => item.hashes.includes(hash));
-    if (!group) return null;
     return Array.from(doc.querySelectorAll("h1,h2,h3,h4,h5,h6")).find(
       (heading) => heading.textContent.trim() === group.currentText
     ) || null;
   }}
 
+  function rewriteHeadingLinks(doc) {{
+    for (const group of headingGroups) {{
+      const heading = findHeading(doc, group);
+      const container = heading && heading.closest('[data-testid="stHeading"]');
+      if (!container) continue;
+      for (const link of container.querySelectorAll('a[href^="#"]')) {{
+        link.href = durableUrl(group.section);
+      }}
+    }}
+  }}
+
   function activateAndScroll() {{
     scheduled = false;
-    const hash = normalizedHash();
-    if (!hash) return true;
-
     let doc;
     try {{
       doc = window.parent.document;
     }} catch (_) {{
       return true;
     }}
-    const target = findHeading(doc, hash);
+    rewriteHeadingLinks(doc);
+
+    const section = requestedSection();
+    if (!section) return true;
+    const group = headingGroups.find((item) => item.section === section);
+    const target = group && findHeading(doc, group);
     if (!target) return false;
 
     const panel = target.closest('[data-testid="stTabPanel"]');
@@ -178,13 +244,20 @@ def _render_anchor_tab_router() -> None:
   }}
 
   try {{
-    window.parent.addEventListener("hashchange", () => {{ attempts = 0; schedule(); }});
+    window.parent.document.addEventListener("click", (event) => {{
+      const link = event.target.closest && event.target.closest('a[href^="#"]');
+      if (!link) return;
+      const group = groupForHash(link.getAttribute("href").slice(1));
+      if (!group) return;
+      event.preventDefault();
+      window.parent.location.assign(durableUrl(group.section));
+    }}, true);
     new window.parent.MutationObserver(schedule).observe(window.parent.document.body, {{
       childList: true,
       subtree: true,
     }});
   }} catch (_) {{
-    // If iframe access is restricted, the dashboard still renders normally.
+    // If browser scripting is restricted, query links still select the right tab.
   }}
   schedule();
 }})();
@@ -690,7 +763,7 @@ with _join_col:
         width="stretch",
     )
 
-st.title(t("title"))
+_section_heading("title", "title", "overview")
 st.caption(t("subtitle"))
 
 try:
@@ -738,7 +811,7 @@ summary_1.metric(t("metric_case_observations"), metrics.case_observation_count)
 summary_2.metric(t("metric_decisions_this_week"), decisions.current_calendar_week)
 summary_3.metric(t("metric_decisions_this_month"), decisions.current_calendar_month)
 
-st.subheader(t("subheader_filing_to_decision"))
+_section_heading("subheader", "subheader_filing_to_decision", "decision")
 r1, r2, r3, e1, e2, e3 = st.columns(6)
 r1.metric(
     t("metric_reparole_average"),
@@ -753,15 +826,19 @@ e1.metric(t("metric_ead_average"), _days(ead_decision.average_days if ead_decisi
 e2.metric(t("metric_ead_median"), _days(ead_decision.median_days if ead_decision else None))
 e3.metric(t("metric_ead_cases"), ead_decision.sample_size if ead_decision else 0)
 
+_requested_section = st.query_params.get("section")
+_tab_labels = (
+    t("tab_speed"),
+    t("tab_cases"),
+    t("tab_expedite"),
+    t("tab_estimates"),
+    t("tab_personal"),
+    t("tab_how_it_works"),
+)
+_requested_tab_key = _SECTION_TAB_KEYS.get(_requested_section)
 speed_tab, cases_tab, expedite_tab, estimates_tab, personal_tab, how_tab = st.tabs(
-    (
-        t("tab_speed"),
-        t("tab_cases"),
-        t("tab_expedite"),
-        t("tab_estimates"),
-        t("tab_personal"),
-        t("tab_how_it_works"),
-    )
+    _tab_labels,
+    default=t(_requested_tab_key) if _requested_tab_key else None,
 )
 
 with speed_tab:
@@ -788,14 +865,14 @@ with speed_tab:
         else:
             st.markdown("- " + t("typical_wait_unavailable", family=_label(family_key)))
 
-    st.subheader(t("subheader_recent_decisions"))
+    _section_heading("subheader", "subheader_recent_decisions", "recent")
     d1, d2, d3, d4 = st.columns(4)
     d1.metric(t("metric_last_7_days"), decisions.last_7_days)
     d2.metric(t("metric_previous_calendar_week"), decisions.previous_calendar_week)
     d3.metric(t("metric_current_week"), decisions.current_calendar_week)
     d4.metric(t("metric_current_month"), decisions.current_calendar_month)
 
-    st.subheader(t("subheader_recent_pace"))
+    _section_heading("subheader", "subheader_recent_pace", "pace")
     st.caption(t("caption_recent_pace"))
     granularity = st.radio(
         t("granularity_label"),
@@ -830,7 +907,7 @@ with speed_tab:
             pd.concat(flagged_frames, ignore_index=True), hide_index=True, width="stretch"
         )
 
-    st.subheader(t("subheader_filed_vintage"))
+    _section_heading("subheader", "subheader_filed_vintage", "filings")
     window_options = list(WINDOW_ORDER)
     selected_window = st.selectbox(
         t("window_label"),
@@ -884,7 +961,7 @@ with speed_tab:
     summary = _milestone_frame(metrics.milestone_durations)
     if not summary.empty:
         summary = summary[summary[t("column_milestone")] != _label("approval")]
-    st.subheader(t("subheader_typical_time"))
+    _section_heading("subheader", "subheader_typical_time", "typical")
     if summary.empty:
         st.info(t("info_no_milestone_samples"))
     else:
@@ -899,7 +976,7 @@ with speed_tab:
     weekly = _weekly_frame(metrics.weekly_milestone_durations)
     if not weekly.empty:
         weekly = weekly[weekly[t("column_milestone")] != _label("approval")]
-    st.subheader(t("subheader_weekly_trend"))
+    _section_heading("subheader", "subheader_weekly_trend", "trends")
     if weekly.empty:
         st.info(t("info_no_weekly_trend"))
     else:
@@ -946,7 +1023,7 @@ with speed_tab:
         st.caption(t("caption_trend"))
 
         signals = _pace_signals(metrics.weekly_milestone_durations)
-        st.subheader(t("subheader_pace_signals"))
+        _section_heading("subheader", "subheader_pace_signals", "signals")
         if signals.empty:
             st.info(t("info_no_pace_signals"))
         else:
@@ -1001,7 +1078,7 @@ with expedite_tab:
             comparison[t("column_case_type")].isin([_label("re_parole"), _label("ead")])
             & (comparison[t("column_milestone")] == _label("decision"))
         ]
-    st.subheader(t("subheader_expedite_comparison"))
+    _section_heading("subheader", "subheader_expedite_comparison", "expedite")
     if comparison.empty:
         st.info(t("info_no_expedite_comparison"))
     else:
@@ -1029,7 +1106,7 @@ with expedite_tab:
     st.info(t("info_expedite_disclaimer"))
 
 with estimates_tab:
-    st.subheader(t("subheader_case_estimates"))
+    _section_heading("subheader", "subheader_case_estimates", "estimates")
     st.caption(t("caption_case_estimates"))
     filed_date_input = st.date_input(
         t("filed_date_label"),
@@ -1100,35 +1177,35 @@ with personal_tab:
         )
 
 with how_tab:
-    st.header(t("how_title"))
+    _section_heading("header", "how_title", "how")
     st.markdown(t("how_intro"))
 
-    st.subheader(t("how_expected_title"))
+    _section_heading("subheader", "how_expected_title", "input")
     st.markdown(t("how_expected_intro"))
     st.code(t("how_expected_example"), language=None, wrap_lines=True)
 
-    st.subheader(t("how_confirmation_title"))
+    _section_heading("subheader", "how_confirmation_title", "confirm")
     st.markdown(t("how_confirmation_intro"))
     st.info(t("how_confirmation_example"))
 
-    st.subheader(t("how_stored_title"))
+    _section_heading("subheader", "how_stored_title", "stored")
     st.markdown(t("how_stored_intro"))
     st.success(t("how_stored_example"))
     st.markdown(t("how_not_stored"))
 
-    st.subheader(t("how_pii_title"))
+    _section_heading("subheader", "how_pii_title", "privacy")
     st.warning(t("how_pii_warning"))
     st.markdown(t("how_pii_intro"))
     st.code(t("how_pii_example"), language=None, wrap_lines=True)
     st.markdown(t("how_pii_handling"))
 
-    st.subheader(t("how_pii_extracted_title"))
+    _section_heading("subheader", "how_pii_extracted_title", "extracted")
     st.markdown(t("how_pii_extracted_intro"))
     st.success(t("how_pii_extracted_example"))
     st.markdown(t("how_pii_excluded"))
 
-_render_anchor_tab_router()
+_render_section_link_support()
 
 st.divider()
-st.subheader(t("subheader_how_to_interpret"))
+_section_heading("subheader", "subheader_how_to_interpret", "interpretation")
 st.markdown(t("how_to_interpret_body"))
