@@ -77,6 +77,7 @@ def render_source_selector() -> str:
         labels,
         index=SOURCES.index(current),
         key="_source_selector",
+        label_visibility="collapsed",
     )
     chosen_code = SOURCES[labels.index(chosen_label)]
     st.session_state[_SOURCE_SESSION_KEY] = chosen_code
@@ -229,7 +230,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "metric_decisions_this_week": "Final decisions this week",
         "metric_decisions_this_month": "Final decisions this month",
         "source_selector_label": "Data source",
-        "source_published": "Published case timelines",
+        "source_published": "Historic data",
         "source_self_tracked": "Self-tracked cases",
         "source_all": "All community data",
         "source_provenance": (
@@ -594,8 +595,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         "metric_decisions_this_week": "Рішення цього тижня",
         "metric_decisions_this_month": "Рішення цього місяця",
         "source_selector_label": "Джерело даних",
-        "source_published": "Опубліковані історії справ",
-        "source_self_tracked": "Справи на особистому відстеженні",
+        "source_published": "Історичні дані",
+        "source_self_tracked": "Самостійно додані дані",
         "source_all": "Усі дані спільноти",
         "source_provenance": (
             "{total:,} спостережень по справах: {published:,} опубліковано, "
