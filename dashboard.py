@@ -119,7 +119,7 @@ def _anchor_slug(value: str) -> str:
 
 
 def _section_heading(level: str, key: str, section: str) -> None:
-    """Render a heading whose permalink is already a durable section URL."""
+    """Render a heading with a clipboard-ready durable section URL."""
 
     heading_class, aria_level = {
         "title": ("u4u-title", 1),
@@ -127,11 +127,15 @@ def _section_heading(level: str, key: str, section: str) -> None:
         "subheader": ("u4u-subheader", 3),
     }[level]
     language = st.query_params.get("lang") or "uk"
-    href = html.escape(f"/?lang={language}&section={section}", quote=True)
+    href = html.escape(
+        f"https://u4u-dashboard.streamlit.app/?lang={language}&section={section}",
+        quote=True,
+    )
     st.markdown(
         f'<div id="{section}" class="u4u-section-heading {heading_class}" '
         f'role="heading" aria-level="{aria_level}">{html.escape(t(key))}'
-        f'<a class="u4u-section-link" href="{href}" target="_top">#</a></div>',
+        f'<a class="u4u-section-link" href="{href}" title="Copy link" '
+        f'aria-label="Copy section link">#</a></div>',
         unsafe_allow_html=True,
     )
 
@@ -180,27 +184,65 @@ def _render_section_styles() -> None:
 
 
 def _render_section_scroll_support() -> None:
-    """Scroll to a server-selected section without attempting navigation."""
+    """Scroll to a selected section and make heading links copy-only."""
 
     section = st.query_params.get("section")
-    if section not in _SECTION_HEADING_KEYS:
-        return
+    scroll_section = section if section in _SECTION_HEADING_KEYS else ""
     st.html(
         f"""
 <script>
 (() => {{
-  const section = {json.dumps(section)};
+  const section = {json.dumps(scroll_section)};
+  const appWindow = window.parent;
+  const appDocument = appWindow.document;
+
+  if (!appWindow.__u4uSectionClipboardInstalled) {{
+    appWindow.__u4uSectionClipboardInstalled = true;
+    appDocument.addEventListener("click", async (event) => {{
+      const link = event.target.closest?.("a.u4u-section-link");
+      if (!link) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      const url = link.href;
+      let copied = false;
+
+      try {{
+        await appWindow.navigator.clipboard.writeText(url);
+        copied = true;
+      }} catch (_) {{
+        const textarea = appDocument.createElement("textarea");
+        textarea.value = url;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        appDocument.body.appendChild(textarea);
+        textarea.select();
+        copied = appDocument.execCommand("copy");
+        textarea.remove();
+      }}
+
+      if (copied) {{
+        const originalText = link.textContent;
+        link.textContent = "✓";
+        link.setAttribute("aria-label", "Link copied");
+        appWindow.setTimeout(() => {{
+          link.textContent = originalText;
+          link.setAttribute("aria-label", "Copy section link");
+        }}, 1200);
+      }}
+    }}, true);
+  }}
+
   let attempts = 0;
   function scrollToSection() {{
-    let target = null;
-    try {{ target = window.parent.document.getElementById(section); }} catch (_) {{ return; }}
+    const target = appDocument.getElementById(section);
     if (target) {{
       target.scrollIntoView({{ behavior: "auto", block: "start" }});
     }} else if (attempts++ < 80) {{
-      window.parent.setTimeout(scrollToSection, 100);
+      appWindow.setTimeout(scrollToSection, 100);
     }}
   }}
-  window.parent.requestAnimationFrame(scrollToSection);
+  if (section) appWindow.requestAnimationFrame(scrollToSection);
 }})();
 </script>
 """,
