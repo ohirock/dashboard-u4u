@@ -1,5 +1,6 @@
 """Public Streamlit UI over the aggregate-only Oracle dashboard API."""
 
+import html
 import json
 import os
 import re
@@ -118,15 +119,70 @@ def _anchor_slug(value: str) -> str:
 
 
 def _section_heading(level: str, key: str, section: str) -> None:
-    """Render a heading with one short, language-neutral section identifier."""
+    """Render a heading whose permalink is already a durable section URL."""
 
-    renderer = {
-        "title": st.title,
-        "header": st.header,
-        "subheader": st.subheader,
-    }[level]
-    renderer(t(key), anchor=section)
+    tag = {"title": "h1", "header": "h2", "subheader": "h3"}[level]
+    language = st.query_params.get("lang") or "uk"
+    href = f"?lang={language}&section={section}"
+    st.markdown(
+        f'<{tag} id="{section}" class="u4u-section-heading">{html.escape(t(key))}'
+        f'<a class="u4u-section-link" href="{href}" target="_self">#</a></{tag}>',
+        unsafe_allow_html=True,
+    )
 
+
+def _render_section_styles() -> None:
+    """Keep durable section links compact and hidden until interaction."""
+
+    st.markdown(
+        """
+<style>
+.u4u-section-heading .u4u-section-link {
+  color: inherit;
+  font-size: 0.62em;
+  font-weight: 400;
+  margin-left: 0.35rem;
+  opacity: 0;
+  text-decoration: none;
+  transition: opacity 100ms ease-in-out;
+  vertical-align: middle;
+}
+.u4u-section-heading:hover .u4u-section-link,
+.u4u-section-heading .u4u-section-link:focus-visible { opacity: 0.45; }
+.u4u-section-heading .u4u-section-link:hover { opacity: 0.85; }
+</style>
+""",
+        unsafe_allow_html=True,
+    )
+
+
+def _render_section_scroll_support() -> None:
+    """Scroll to a server-selected section without attempting navigation."""
+
+    section = st.query_params.get("section")
+    if section not in _SECTION_HEADING_KEYS:
+        return
+    st.html(
+        f"""
+<script>
+(() => {{
+  const section = {json.dumps(section)};
+  let attempts = 0;
+  function scrollToSection() {{
+    let target = null;
+    try {{ target = window.parent.document.getElementById(section); }} catch (_) {{ return; }}
+    if (target) {{
+      target.scrollIntoView({{ behavior: "auto", block: "start" }});
+    }} else if (attempts++ < 80) {{
+      window.parent.setTimeout(scrollToSection, 100);
+    }}
+  }}
+  window.parent.requestAnimationFrame(scrollToSection);
+}})();
+</script>
+""",
+        unsafe_allow_javascript=True,
+    )
 
 def _render_section_link_support() -> None:
     """Turn Streamlit heading fragments into durable section query links."""
@@ -760,6 +816,7 @@ def _case_estimates_table(observations, filed_date, window_days: int, generated_
     return pd.DataFrame(rows) if rows else None
 
 
+_render_section_styles()
 _lang_col, _join_col, _ = st.columns([1, 1, 4])
 with _lang_col:
     render_language_selector()
@@ -1218,7 +1275,7 @@ with how_tab:
     st.success(t("how_pii_extracted_example"))
     st.markdown(t("how_pii_excluded"))
 
-_render_section_link_support()
+_render_section_scroll_support()
 
 st.divider()
 _section_heading("subheader", "subheader_how_to_interpret", "interpretation")
