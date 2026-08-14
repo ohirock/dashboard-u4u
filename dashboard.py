@@ -15,6 +15,8 @@ from streamlit.errors import StreamlitSecretNotFoundError
 
 try:
     from dashboard_data import (
+        DashboardSnapshot,
+        PersonalDashboardSnapshot,
         PublicDashboardUnavailable,
         bucket_rows,
         fetch_dashboard_snapshot,
@@ -23,6 +25,8 @@ try:
     )
 except ModuleNotFoundError:
     from apps.streamlit.dashboard_data import (
+        DashboardSnapshot,
+        PersonalDashboardSnapshot,
         PublicDashboardUnavailable,
         bucket_rows,
         fetch_dashboard_snapshot,
@@ -445,8 +449,8 @@ def _secret_api_url() -> str | None:
 
 
 @st.cache_data(ttl=PAGE_DATA_CACHE_TTL_SECONDS, show_spinner=False)
-def _load_snapshot(base_url: str, source: str):
-    """Return (snapshot, fetched_at).
+def _load_snapshot_payload(base_url: str, source: str):
+    """Return a pickle-stable JSON payload and ISO fetch timestamp.
 
     `st.cache_data` is a server-wide cache shared by every visitor, not a
     per-browser-session value — `fetched_at` is captured once, when this
@@ -456,15 +460,43 @@ def _load_snapshot(base_url: str, source: str):
     own cache entry instead of colliding.
     """
 
-    return fetch_dashboard_snapshot(base_url, source=source), datetime.now(UTC)
+    snapshot = fetch_dashboard_snapshot(base_url, source=source)
+    return snapshot.model_dump(mode="json"), datetime.now(UTC).isoformat()
+
+
+def _load_snapshot(base_url: str, source: str):
+    """Rehydrate the strictly validated model outside Streamlit's pickle cache."""
+
+    payload, fetched_at = _load_snapshot_payload(base_url, source)
+    return (
+        DashboardSnapshot.model_validate(payload),
+        datetime.fromisoformat(fetched_at),
+    )
 
 
 @st.cache_data(ttl=PAGE_DATA_CACHE_TTL_SECONDS, show_spinner=False)
-def _load_personal_snapshot(base_url: str):
-    """Return (snapshot_or_none, fetched_at); see `_load_snapshot` above."""
+def _load_personal_snapshot_payload(base_url: str):
+    """Return a pickle-stable optional personal payload and timestamp."""
 
-    snapshot = None if fetch_personal_dashboard_snapshot is None else fetch_personal_dashboard_snapshot(base_url)
-    return snapshot, datetime.now(UTC)
+    snapshot = (
+        None
+        if fetch_personal_dashboard_snapshot is None
+        else fetch_personal_dashboard_snapshot(base_url)
+    )
+    payload = None if snapshot is None else snapshot.model_dump(mode="json")
+    return payload, datetime.now(UTC).isoformat()
+
+
+def _load_personal_snapshot(base_url: str):
+    """Rehydrate the optional personal model outside Streamlit's pickle cache."""
+
+    payload, fetched_at = _load_personal_snapshot_payload(base_url)
+    snapshot = (
+        None
+        if payload is None
+        else PersonalDashboardSnapshot.model_validate(payload)
+    )
+    return snapshot, datetime.fromisoformat(fetched_at)
 
 
 def _next_wall_clock_mark(now: datetime, *, period_seconds: int) -> datetime:

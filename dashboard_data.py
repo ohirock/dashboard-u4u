@@ -231,7 +231,7 @@ def fetch_dashboard_snapshot(
     *,
     source: str = DEFAULT_DASHBOARD_SOURCE,
     opener: Callable[..., Any] = urlopen,
-    timeout_seconds: float = 10.0,
+    timeout_seconds: float = 25.0,
 ) -> DashboardSnapshot:
     """Fetch, bound, decode, and strictly validate one aggregate snapshot."""
 
@@ -283,7 +283,7 @@ def fetch_personal_dashboard_snapshot(
     base_url: str,
     *,
     opener: Callable[..., Any] = urlopen,
-    timeout_seconds: float = 10.0,
+    timeout_seconds: float = 25.0,
 ) -> PersonalDashboardSnapshot | None:
     """Fetch the optional, anonymized personal-bot snapshot.
 
