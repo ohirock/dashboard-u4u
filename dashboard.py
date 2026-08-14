@@ -1,9 +1,11 @@
 """Public Streamlit UI over the aggregate-only Oracle dashboard API."""
 
 import html
+import importlib
 import json
 import os
 import re
+import sys
 import unicodedata
 from datetime import UTC, date, datetime, timedelta
 
@@ -13,37 +15,40 @@ import streamlit as st
 from plotly.subplots import make_subplots
 from streamlit.errors import StreamlitSecretNotFoundError
 
-try:
-    from dashboard_data import (
-        DashboardSnapshot,
-        PersonalDashboardSnapshot,
-        PublicDashboardUnavailable,
-        bucket_rows,
-        fetch_dashboard_snapshot,
-        public_api_base_url,
-        snapshot_age_hours,
-    )
-except ModuleNotFoundError:
-    from apps.streamlit.dashboard_data import (
-        DashboardSnapshot,
-        PersonalDashboardSnapshot,
-        PublicDashboardUnavailable,
-        bucket_rows,
-        fetch_dashboard_snapshot,
-        public_api_base_url,
-        snapshot_age_hours,
-    )
+def _load_dashboard_data_module():
+    """Import dashboard data, recovering from Streamlit's hot-reload race."""
 
-# Imported separately and defensively: a stale hosting-platform code cache
-# that hasn't picked up a new name in dashboard_data yet must degrade this
-# one optional tab, never crash the whole page.
-try:
-    from dashboard_data import fetch_personal_dashboard_snapshot
-except ImportError:
     try:
-        from apps.streamlit.dashboard_data import fetch_personal_dashboard_snapshot
-    except ImportError:
-        fetch_personal_dashboard_snapshot = None
+        return importlib.import_module("dashboard_data")
+    except KeyError as exc:
+        if exc.args != ("dashboard_data",):
+            raise
+        # Streamlit's file watcher can briefly remove this module from
+        # sys.modules during a rerun while Python is still resolving it.
+        # Clear any partial entry and retry once from the stable source file.
+        sys.modules.pop("dashboard_data", None)
+        importlib.invalidate_caches()
+        return importlib.import_module("dashboard_data")
+    except ModuleNotFoundError:
+        return importlib.import_module("apps.streamlit.dashboard_data")
+
+
+_dashboard_data = _load_dashboard_data_module()
+DashboardSnapshot = _dashboard_data.DashboardSnapshot
+PersonalDashboardSnapshot = _dashboard_data.PersonalDashboardSnapshot
+PublicDashboardUnavailable = _dashboard_data.PublicDashboardUnavailable
+bucket_rows = _dashboard_data.bucket_rows
+fetch_dashboard_snapshot = _dashboard_data.fetch_dashboard_snapshot
+public_api_base_url = _dashboard_data.public_api_base_url
+snapshot_age_hours = _dashboard_data.snapshot_age_hours
+
+# A stale hosting code cache that predates the optional personal endpoint must
+# degrade only that tab, never crash the canonical dashboard.
+fetch_personal_dashboard_snapshot = getattr(
+    _dashboard_data,
+    "fetch_personal_dashboard_snapshot",
+    None,
+)
 
 from i18n import (
     WINDOW_ORDER,
