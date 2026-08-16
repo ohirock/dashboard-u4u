@@ -15,25 +15,30 @@ import streamlit as st
 from plotly.subplots import make_subplots
 from streamlit.errors import StreamlitSecretNotFoundError
 
-def _load_dashboard_data_module():
-    """Import dashboard data, recovering from Streamlit's hot-reload race."""
+def _load_local_module(name: str, *, fallback: str | None = None):
+    """Import one local module, recovering from Streamlit's hot-reload race."""
 
     try:
-        return importlib.import_module("dashboard_data")
+        return importlib.import_module(name)
     except KeyError as exc:
-        if exc.args != ("dashboard_data",):
+        if exc.args != (name,):
             raise
-        # Streamlit's file watcher can briefly remove this module from
+        # Streamlit's file watcher can briefly remove a local module from
         # sys.modules during a rerun while Python is still resolving it.
         # Clear any partial entry and retry once from the stable source file.
-        sys.modules.pop("dashboard_data", None)
+        sys.modules.pop(name, None)
         importlib.invalidate_caches()
-        return importlib.import_module("dashboard_data")
+        return importlib.import_module(name)
     except ModuleNotFoundError:
-        return importlib.import_module("apps.streamlit.dashboard_data")
+        if fallback is None:
+            raise
+        return importlib.import_module(fallback)
 
 
-_dashboard_data = _load_dashboard_data_module()
+_dashboard_data = _load_local_module(
+    "dashboard_data",
+    fallback="apps.streamlit.dashboard_data",
+)
 DashboardSnapshot = _dashboard_data.DashboardSnapshot
 PersonalDashboardSnapshot = _dashboard_data.PersonalDashboardSnapshot
 PublicDashboardUnavailable = _dashboard_data.PublicDashboardUnavailable
@@ -50,16 +55,14 @@ fetch_personal_dashboard_snapshot = getattr(
     None,
 )
 
-from i18n import (
-    WINDOW_ORDER,
-    get_source,
-    label,
-    render_language_selector,
-    render_source_selector,
-    t,
-    translations,
-    window_label,
-)
+_i18n = _load_local_module("i18n")
+WINDOW_ORDER = _i18n.WINDOW_ORDER
+label = _i18n.label
+render_language_selector = _i18n.render_language_selector
+render_source_selector = _i18n.render_source_selector
+t = _i18n.t
+translations = _i18n.translations
+window_label = _i18n.window_label
 
 st.set_page_config(
     page_title="Community Immigration Case Tracker",
