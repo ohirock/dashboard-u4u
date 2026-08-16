@@ -181,11 +181,16 @@ _LABELS: dict[str, dict[str, str]] = {
     "payment_received": {"en": "Payment received", "uk": "Платіж отримано"},
     "approved": {"en": "Approved", "uk": "Схвалено"},
     "denied": {"en": "Denied", "uk": "Відмовлено"},
+    "withdrawn": {"en": "Withdrawn", "uk": "Відкликано"},
     "rfe": {"en": "RFE", "uk": "Запит додаткових доказів (RFE)"},
     "nta": {"en": "NTA", "uk": "Повідомлення про явку до суду (NTA)"},
     "congressional": {"en": "Via Congress member", "uk": "Через представника Конгресу"},
     "self_filed": {"en": "Self-filed", "uk": "Самостійно"},
-    "pre_approval": {"en": "Pre-approval", "uk": "Попереднє схвалення"},
+    "pre_approval": {"en": "Conditional approval", "uk": "Умовне схвалення"},
+    "pre_approval_to_approval": {
+        "en": "Conditional to final approval",
+        "uk": "Від умовного до фінального схвалення",
+    },
     "biometrics": {"en": "Biometrics", "uk": "Біометрія"},
     "approval": {"en": "Approval", "uk": "Схвалення"},
     "decision": {"en": "Final decision", "uk": "Остаточне рішення"},
@@ -229,6 +234,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "metric_case_observations": "Case observations",
         "metric_decisions_this_week": "Final decisions this week",
         "metric_decisions_this_month": "Final decisions this month",
+        "caption_reparole_approval_rule": (
+            "For Re-parole, decision counts and processing-time charts include "
+            "final approvals only. Conditional approvals are shown separately; "
+            "denials and withdrawals remain separate terminal statuses."
+        ),
         "source_selector_label": "Data source",
         "source_published": "Historic data",
         "source_self_tracked": "Self-tracked cases",
@@ -594,6 +604,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "metric_case_observations": "Спостереження по справах",
         "metric_decisions_this_week": "Рішення цього тижня",
         "metric_decisions_this_month": "Рішення цього місяця",
+        "caption_reparole_approval_rule": (
+            "Для Re-parole у кількості рішень і графіках строків враховуються "
+            "лише фінальні схвалення. Умовні схвалення показані окремо; "
+            "відмови та відкликання залишаються окремими фінальними статусами."
+        ),
         "source_selector_label": "Джерело даних",
         "source_published": "Історичні дані",
         "source_self_tracked": "Самостійно додані дані",

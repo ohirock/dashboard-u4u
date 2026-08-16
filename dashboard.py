@@ -1093,6 +1093,7 @@ summary_1, summary_2, summary_3 = st.columns(3)
 summary_1.metric(t("metric_case_observations"), metrics.case_observation_count)
 summary_2.metric(t("metric_decisions_this_week"), decisions.current_calendar_week)
 summary_3.metric(t("metric_decisions_this_month"), decisions.current_calendar_month)
+st.caption(t("caption_reparole_approval_rule"))
 
 if metrics.source_counts is not None:
     st.caption(
