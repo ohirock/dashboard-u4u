@@ -262,7 +262,44 @@ _STRINGS: dict[str, dict[str, str]] = {
         "tab_expedite": "Expedite impact",
         "tab_estimates": "My case estimate",
         "tab_personal": "Community self-tracking",
+        "tab_tps_decisions": "TPS decisions",
         "tab_how_it_works": "How it works",
+        "tps_decisions_intro": (
+            "Termination notices published during the current Trump administration, "
+            "listed in Federal Register publication order."
+        ),
+        "tps_decisions_date_note": (
+            "The expiration column shows the TPS expiration date DHS was reviewing, "
+            "not necessarily the date a termination took effect. Court orders and later "
+            "notices can change the practical result. Haiti's July 2025 notice was "
+            "superseded, so both official notices are listed."
+        ),
+        "tps_column_country": "Country / designation",
+        "tps_column_start": "TPS began",
+        "tps_column_expiration": "Expiration reviewed",
+        "tps_column_notice": "Notice published",
+        "tps_column_timing": "Notice timing",
+        "tps_column_source": "Official notice",
+        "tps_source_label": "Federal Register",
+        "tps_timing_before": "{days} days before expiration",
+        "tps_timing_after": "{days} days after expiration",
+        "tps_timing_same_day": "Same day",
+        "tps_superseded_suffix": " — superseded notice",
+        "tps_decisions_footer": "Last verified against the Federal Register: September 4, 2026.",
+        "tps_country_afghanistan": "Afghanistan",
+        "tps_country_cameroon": "Cameroon",
+        "tps_country_nepal": "Nepal",
+        "tps_country_honduras": "Honduras",
+        "tps_country_nicaragua": "Nicaragua",
+        "tps_country_haiti": "Haiti",
+        "tps_country_venezuela_2023": "Venezuela — 2023 designation",
+        "tps_country_venezuela_2021": "Venezuela — 2021 designation",
+        "tps_country_syria": "Syria",
+        "tps_country_south_sudan": "South Sudan",
+        "tps_country_burma": "Burma (Myanmar)",
+        "tps_country_ethiopia": "Ethiopia",
+        "tps_country_somalia": "Somalia",
+        "tps_country_yemen": "Yemen",
         "join_button": "Join",
         "how_title": "How your message becomes community statistics",
         "how_intro": (
@@ -632,12 +669,49 @@ _STRINGS: dict[str, dict[str, str]] = {
         "tab_expedite": "Вплив прискорення",
         "tab_estimates": "Оцінка моєї справи",
         "tab_personal": "Особисте відстеження спільноти",
+        "tab_tps_decisions": "Рішення щодо TPS",
         "subheader_recent_decisions": "Нещодавні остаточні рішення",
         "metric_last_7_days": "Останні 7 днів",
         "metric_previous_calendar_week": "Попередній календарний тиждень",
         "metric_current_week": "Поточний тиждень",
         "metric_current_month": "Поточний місяць",
         "tab_how_it_works": "Як це працює",
+        "tps_decisions_intro": (
+            "Повідомлення про припинення TPS, опубліковані за чинної адміністрації "
+            "Трампа, у порядку публікації у Federal Register."
+        ),
+        "tps_decisions_date_note": (
+            "У колонці завершення вказано дату закінчення TPS, яку розглядав DHS, "
+            "а не обов’язково дату набрання припиненням чинності. Судові рішення та "
+            "пізніші повідомлення можуть змінити практичний результат. Повідомлення "
+            "щодо Гаїті за липень 2025 року було замінене, тому наведено обидва."
+        ),
+        "tps_column_country": "Країна / призначення",
+        "tps_column_start": "Початок TPS",
+        "tps_column_expiration": "Розглянута дата завершення",
+        "tps_column_notice": "Дата публікації",
+        "tps_column_timing": "Час публікації",
+        "tps_column_source": "Офіційне повідомлення",
+        "tps_source_label": "Federal Register",
+        "tps_timing_before": "За {days} дн. до завершення",
+        "tps_timing_after": "Через {days} дн. після завершення",
+        "tps_timing_same_day": "Того самого дня",
+        "tps_superseded_suffix": " — замінене повідомлення",
+        "tps_decisions_footer": "Остання перевірка за Federal Register: 4 вересня 2026 року.",
+        "tps_country_afghanistan": "Афганістан",
+        "tps_country_cameroon": "Камерун",
+        "tps_country_nepal": "Непал",
+        "tps_country_honduras": "Гондурас",
+        "tps_country_nicaragua": "Нікарагуа",
+        "tps_country_haiti": "Гаїті",
+        "tps_country_venezuela_2023": "Венесуела — призначення 2023 року",
+        "tps_country_venezuela_2021": "Венесуела — призначення 2021 року",
+        "tps_country_syria": "Сирія",
+        "tps_country_south_sudan": "Південний Судан",
+        "tps_country_burma": "Бірма (М’янма)",
+        "tps_country_ethiopia": "Ефіопія",
+        "tps_country_somalia": "Сомалі",
+        "tps_country_yemen": "Ємен",
         "join_button": "Долучитися",
         "how_title": "Як ваше повідомлення стає частиною статистики",
         "how_intro": (

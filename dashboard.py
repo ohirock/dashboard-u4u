@@ -64,6 +64,9 @@ t = _i18n.t
 translations = _i18n.translations
 window_label = _i18n.window_label
 
+_tps_decisions = _load_local_module("tps_decisions")
+TPS_TERMINATION_DECISIONS = _tps_decisions.TPS_TERMINATION_DECISIONS
+
 st.set_page_config(
     page_title="Community Immigration Case Tracker",
     page_icon="📊",
@@ -98,6 +101,7 @@ _ANCHOR_HEADING_KEYS = (
     "tab_speed",
     "tab_cases",
     "tab_personal",
+    "tab_tps_decisions",
 )
 
 _SECTION_HEADING_KEYS = dict(
@@ -106,7 +110,7 @@ _SECTION_HEADING_KEYS = dict(
             "overview", "decision", "recent", "pace", "filings", "typical",
             "trends", "signals", "expedite", "estimates", "how", "input",
             "confirm", "stored", "privacy", "extracted", "notice",
-            "interpretation", "speed", "cases", "self_tracking",
+            "interpretation", "speed", "cases", "self_tracking", "tps_actions",
         ),
         _ANCHOR_HEADING_KEYS,
         strict=True,
@@ -120,6 +124,7 @@ _SECTION_TAB_KEYS = {
     "estimates": "tab_estimates",
     "cases": "tab_cases",
     "self_tracking": "tab_personal",
+    "tps_actions": "tab_tps_decisions",
     **{section: "tab_how_it_works" for section in (
         "how", "input", "confirm", "stored", "privacy", "extracted", "notice",
     )},
@@ -1135,6 +1140,7 @@ _tab_labels = (
     t("tab_expedite"),
     t("tab_estimates"),
     t("tab_personal"),
+    t("tab_tps_decisions"),
     t("tab_how_it_works"),
 )
 _requested_tab_key = _SECTION_TAB_KEYS.get(_requested_section)
@@ -1143,7 +1149,7 @@ _requested_tab_label = t(_requested_tab_key) if _requested_tab_key else _tab_lab
 _language = st.query_params.get("lang") or "uk"
 _tab_widget_key = f"dashboard_tabs_{_language}_{_requested_section or 'root'}"
 
-speed_tab, cases_tab, expedite_tab, estimates_tab, personal_tab, how_tab = st.tabs(
+speed_tab, cases_tab, expedite_tab, estimates_tab, personal_tab, tps_tab, how_tab = st.tabs(
     _tab_labels,
     default=_requested_tab_label,
     key=_tab_widget_key,
@@ -1484,6 +1490,44 @@ with personal_tab:
                 generated_at=personal_snapshot.generated_at.strftime("%Y-%m-%d %H:%M UTC"),
             )
         )
+
+with tps_tab:
+    _section_heading("subheader", "tab_tps_decisions", "tps_actions")
+    st.markdown(t("tps_decisions_intro"))
+    st.info(t("tps_decisions_date_note"))
+    tps_rows = []
+    for decision in TPS_TERMINATION_DECISIONS:
+        if decision.timing_days < 0:
+            timing = t("tps_timing_before", days=abs(decision.timing_days))
+        elif decision.timing_days > 0:
+            timing = t("tps_timing_after", days=decision.timing_days)
+        else:
+            timing = t("tps_timing_same_day")
+        country = t(f"tps_country_{decision.country_key}")
+        if decision.superseded:
+            country += t("tps_superseded_suffix")
+        tps_rows.append(
+            {
+                t("tps_column_country"): country,
+                t("tps_column_start"): decision.designation_start,
+                t("tps_column_expiration"): decision.expiration_reviewed,
+                t("tps_column_notice"): decision.notice_date,
+                t("tps_column_timing"): timing,
+                t("tps_column_source"): decision.notice_url,
+            }
+        )
+    st.dataframe(
+        pd.DataFrame(tps_rows),
+        width="stretch",
+        hide_index=True,
+        column_config={
+            t("tps_column_start"): st.column_config.DateColumn(format="YYYY-MM-DD"),
+            t("tps_column_expiration"): st.column_config.DateColumn(format="YYYY-MM-DD"),
+            t("tps_column_notice"): st.column_config.DateColumn(format="YYYY-MM-DD"),
+            t("tps_column_source"): st.column_config.LinkColumn(display_text=t("tps_source_label")),
+        },
+    )
+    st.caption(t("tps_decisions_footer"))
 
 with how_tab:
     _section_heading("header", "how_title", "how")
