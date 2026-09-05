@@ -1495,6 +1495,14 @@ with tps_tab:
     _section_heading("subheader", "tab_tps_decisions", "tps_actions")
     st.markdown(t("tps_decisions_intro"))
     st.info(t("tps_decisions_date_note"))
+
+    def _tps_duration(start: date, end: date) -> str:
+        total_months = (end.year - start.year) * 12 + end.month - start.month
+        if end.day < start.day:
+            total_months -= 1
+        years, months = divmod(max(total_months, 0), 12)
+        return t("tps_duration", years=years, months=months)
+
     tps_rows = []
     for decision in TPS_DECISIONS:
         if decision.timing_days is None:
@@ -1508,6 +1516,21 @@ with tps_tab:
         country = t(f"tps_country_{decision.country_key}")
         if decision.superseded:
             country += t("tps_superseded_suffix")
+        actual_end = _tps_decisions.actual_end_date(decision)
+        litigation_end = _tps_decisions.litigation_end_date(decision)
+        actual_end_display = actual_end.isoformat()
+        total_duration = _tps_duration(decision.designation_start, actual_end)
+        if litigation_end is not None:
+            actual_end_display = t(
+                "tps_actual_end_litigation",
+                general=actual_end.isoformat(),
+                litigation=litigation_end.isoformat(),
+            )
+            total_duration = t(
+                "tps_duration_litigation",
+                general=total_duration,
+                litigation=_tps_duration(decision.designation_start, litigation_end),
+            )
         tps_rows.append(
             {
                 t("tps_column_country"): country,
@@ -1515,6 +1538,11 @@ with tps_tab:
                 t("tps_column_start"): decision.designation_start,
                 t("tps_column_expiration"): decision.expiration_reviewed,
                 t("tps_column_notice"): decision.notice_date,
+                t("tps_column_actual_end"): actual_end_display,
+                t("tps_column_total_duration"): total_duration,
+                t("tps_column_litigation"): t(
+                    f"tps_litigation_{_tps_decisions.litigation_status(decision)}"
+                ),
                 t("tps_column_timing"): timing,
                 t("tps_column_source"): decision.notice_url,
                 t("tps_column_uscis"): decision.uscis_url,
@@ -1539,9 +1567,18 @@ with tps_tab:
             timing_colors[timing_value] = "background-color: #fee2e2; color: #991b1b"
         else:
             timing_colors[timing_value] = "background-color: #ffedd5; color: #9a3412"
+    litigation_colors = {
+        row[t("tps_column_actual_end")]: "background-color: #fef3c7; color: #92400e"
+        for decision, row in zip(TPS_DECISIONS, tps_rows)
+        if _tps_decisions.litigation_end_date(decision) is not None
+    }
     styled_tps = tps_frame.style.map(
         lambda value: decision_colors.get(value, ""), subset=[t("tps_column_decision")]
-    ).map(lambda value: timing_colors.get(value, ""), subset=[t("tps_column_timing")])
+    ).map(
+        lambda value: timing_colors.get(value, ""), subset=[t("tps_column_timing")]
+    ).map(
+        lambda value: litigation_colors.get(value, ""), subset=[t("tps_column_actual_end")]
+    )
     st.dataframe(
         styled_tps,
         width="stretch",

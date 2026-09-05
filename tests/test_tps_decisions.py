@@ -1,6 +1,12 @@
 import unittest
+from datetime import date
 
-from tps_decisions import TPS_DECISIONS
+from tps_decisions import (
+    TPS_DECISIONS,
+    actual_end_date,
+    litigation_end_date,
+    litigation_status,
+)
 
 
 class TpsDecisionsTest(unittest.TestCase):
@@ -36,6 +42,25 @@ class TpsDecisionsTest(unittest.TestCase):
         self.assertTrue(
             all(item.timing_days == (item.notice_date - item.expiration_reviewed).days for item in dated)
         )
+
+
+    def test_actual_end_dates_cover_every_action(self) -> None:
+        self.assertTrue(all(actual_end_date(item) >= item.designation_start for item in TPS_DECISIONS))
+        self.assertEqual(
+            actual_end_date(next(item for item in TPS_DECISIONS if item.country_key == "yemen")),
+            date(2026, 7, 20),
+        )
+
+    def test_venezuela_limited_cohort_is_explicit(self) -> None:
+        item = next(item for item in TPS_DECISIONS if item.country_key == "venezuela_2023")
+        self.assertEqual(actual_end_date(item), date(2025, 4, 2))
+        self.assertEqual(litigation_end_date(item), date(2026, 10, 2))
+        self.assertEqual(litigation_status(item), "pending_limited")
+
+    def test_pending_litigation_does_not_imply_tps_is_active(self) -> None:
+        item = next(item for item in TPS_DECISIONS if item.country_key == "burma")
+        self.assertEqual(litigation_status(item), "pending_ended")
+        self.assertIsNone(litigation_end_date(item))
 
 
 if __name__ == "__main__":

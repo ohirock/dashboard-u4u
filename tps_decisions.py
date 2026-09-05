@@ -56,3 +56,75 @@ TPS_DECISIONS: tuple[TpsDecision, ...] = (
     TpsDecision("somalia", "termination", date(1991, 9, 16), date(2026, 3, 17), date(2026, 1, 14), "https://www.federalregister.gov/d/2026-00596", _uscis("somalia")),
     TpsDecision("yemen", "termination", date(2015, 9, 3), date(2026, 3, 3), date(2026, 3, 3), "https://www.federalregister.gov/d/2026-04179", _uscis("yemen")),
 )
+
+
+_ACTUAL_END_DATES: dict[tuple[str, date | None], date] = {
+    ("el_salvador", None): date(2026, 9, 9),
+    ("sudan", None): date(2026, 10, 19),
+    ("ukraine", None): date(2026, 10, 19),
+    ("lebanon", date(2026, 5, 29)): date(2026, 11, 27),
+    ("venezuela_2023", date(2025, 2, 5)): date(2025, 4, 2),
+    ("south_sudan", date(2025, 5, 6)): date(2026, 8, 7),
+    ("afghanistan", date(2025, 5, 13)): date(2025, 7, 14),
+    ("cameroon", date(2025, 6, 4)): date(2025, 8, 4),
+    ("nepal", date(2025, 6, 6)): date(2026, 2, 9),
+    ("haiti", date(2025, 7, 1)): date(2026, 7, 27),
+    ("honduras", date(2025, 7, 8)): date(2026, 2, 9),
+    ("nicaragua", date(2025, 7, 8)): date(2026, 2, 9),
+    ("venezuela_2021", date(2025, 9, 8)): date(2025, 11, 7),
+    ("syria", date(2025, 9, 22)): date(2026, 7, 27),
+    ("south_sudan", date(2025, 11, 6)): date(2026, 8, 7),
+    ("burma", date(2025, 11, 25)): date(2026, 8, 7),
+    ("haiti", date(2025, 11, 28)): date(2026, 7, 27),
+    ("ethiopia", date(2025, 12, 15)): date(2026, 8, 18),
+    ("somalia", date(2026, 1, 14)): date(2026, 8, 14),
+    ("yemen", date(2026, 3, 3)): date(2026, 7, 20),
+}
+
+_LITIGATION_END_DATES: dict[tuple[str, date | None], date] = {
+    # The designation generally ended on April 2, 2025, but a limited group
+    # retained TPS-related documentation through this date while litigation
+    # continued.
+    ("venezuela_2023", date(2025, 2, 5)): date(2026, 10, 2),
+}
+
+
+def actual_end_date(decision: TpsDecision) -> date:
+    """Return the operative end date after subsequent court orders."""
+
+    return _ACTUAL_END_DATES[(decision.country_key, decision.notice_date)]
+
+
+def litigation_end_date(decision: TpsDecision) -> date | None:
+    """Return a later end date that applies only to a protected litigation cohort."""
+
+    return _LITIGATION_END_DATES.get((decision.country_key, decision.notice_date))
+
+
+_PENDING_LITIGATION_COUNTRIES = frozenset(
+    {
+        "afghanistan",
+        "burma",
+        "cameroon",
+        "ethiopia",
+        "haiti",
+        "honduras",
+        "nepal",
+        "nicaragua",
+        "somalia",
+        "south_sudan",
+        "syria",
+        "venezuela_2021",
+        "venezuela_2023",
+        "yemen",
+    }
+)
+
+
+def litigation_status(decision: TpsDecision) -> str:
+    # Presentation status for litigation affecting the designation.
+    if litigation_end_date(decision) is not None:
+        return "pending_limited"
+    if decision.country_key in _PENDING_LITIGATION_COUNTRIES:
+        return "pending_ended"
+    return "none"

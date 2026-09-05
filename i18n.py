@@ -273,13 +273,16 @@ _STRINGS: dict[str, dict[str, str]] = {
             "Sudan, and Ukraine were extended on January 17, 2025, before this administration, so "
             "they are marked as having no decision in this period. Haiti's July 2025 notice was "
             "superseded, so both notices are listed. Timing: 60+ days before is green, fewer than "
-            "60 days before or the same day is red, and publication after expiration is orange."
+            "60 days before or the same day is red, and publication after expiration is orange. Actual end includes later court orders; total duration runs from the original designation start to that operative end date."
         ),
         "tps_column_country": "Country / designation",
         "tps_column_decision": "Decision",
         "tps_column_start": "TPS began",
         "tps_column_expiration": "Expiration reviewed",
         "tps_column_notice": "Notice published",
+        "tps_column_actual_end": "Actual TPS end",
+        "tps_column_total_duration": "Total TPS duration",
+        "tps_column_litigation": "Litigation status",
         "tps_column_timing": "Notice timing",
         "tps_column_source": "Official notice",
         "tps_column_uscis": "USCIS TPS page",
@@ -294,8 +297,20 @@ _STRINGS: dict[str, dict[str, str]] = {
         "tps_timing_after": "{days} days after expiration",
         "tps_timing_same_day": "Same day",
         "tps_timing_none": "No notice in this period",
+        "tps_duration": "{years} yr {months} mo",
+        "tps_duration_litigation": "{general}; protected group: {litigation}",
+        "tps_actual_end_litigation": (
+            "{general} generally; protected group through {litigation} — litigation in progress"
+        ),
+        "tps_litigation_none": "No relevant litigation",
+        "tps_litigation_pending_ended": "Pending — TPS ended",
+        "tps_litigation_pending_limited": "Pending — limited protection remains",
         "tps_superseded_suffix": " — superseded notice",
-        "tps_decisions_footer": "Last verified against the Federal Register: September 4, 2026.",
+        "tps_decisions_footer": (
+            "Actual-end dates were cross-checked against the [AILA TPS and parole status chart]"
+            "(https://www.aila.org/library/practice-alert-tps-and-parole-status-updates-chart) "
+            "on September 5, 2026. Informational only; not legal advice."
+        ),
         "tps_country_afghanistan": "Afghanistan",
         "tps_country_cameroon": "Cameroon",
         "tps_country_nepal": "Nepal",
@@ -700,13 +715,16 @@ _STRINGS: dict[str, dict[str, str]] = {
             "адміністрації, тому для цього періоду вказано «рішення немає». Повідомлення щодо "
             "Гаїті за липень 2025 року було замінене, тому наведено обидва. Час публікації: "
             "60+ днів до завершення — зелений, менше ніж 60 днів або того самого дня — "
-            "червоний, після завершення — помаранчевий."
+            "червоний, після завершення — помаранчевий. Фактичне завершення враховує пізніші судові рішення; загальну тривалість пораховано від початку призначення до цієї фактичної дати."
         ),
         "tps_column_country": "Країна / призначення",
         "tps_column_decision": "Рішення",
         "tps_column_start": "Початок TPS",
         "tps_column_expiration": "Розглянута дата завершення",
         "tps_column_notice": "Дата публікації",
+        "tps_column_actual_end": "Фактичне завершення TPS",
+        "tps_column_total_duration": "Загальна тривалість TPS",
+        "tps_column_litigation": "Стан судової справи",
         "tps_column_timing": "Час публікації",
         "tps_column_source": "Офіційне повідомлення",
         "tps_column_uscis": "Сторінка TPS на USCIS",
@@ -721,8 +739,20 @@ _STRINGS: dict[str, dict[str, str]] = {
         "tps_timing_after": "Через {days} дн. після завершення",
         "tps_timing_same_day": "Того самого дня",
         "tps_timing_none": "Повідомлення за цей період немає",
+        "tps_duration": "{years} р. {months} міс.",
+        "tps_duration_litigation": "{general}; захищена група: {litigation}",
+        "tps_actual_end_litigation": (
+            "загалом {general}; захищена група до {litigation} — судова справа триває"
+        ),
+        "tps_litigation_none": "Немає відповідної судової справи",
+        "tps_litigation_pending_ended": "Триває — TPS завершено",
+        "tps_litigation_pending_limited": "Триває — обмежений захист збережено",
         "tps_superseded_suffix": " — замінене повідомлення",
-        "tps_decisions_footer": "Остання перевірка за Federal Register: 4 вересня 2026 року.",
+        "tps_decisions_footer": (
+            "Фактичні дати завершення звірено з [таблицею статусів TPS і parole AILA]"
+            "(https://www.aila.org/library/practice-alert-tps-and-parole-status-updates-chart) "
+            "5 вересня 2026 року. Лише для інформації; це не юридична консультація."
+        ),
         "tps_country_afghanistan": "Афганістан",
         "tps_country_cameroon": "Камерун",
         "tps_country_nepal": "Непал",
