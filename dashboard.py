@@ -1572,12 +1572,20 @@ with tps_tab:
         for decision, row in zip(TPS_DECISIONS, tps_rows)
         if _tps_decisions.litigation_end_date(decision) is not None
     }
+    litigation_status_colors = {
+        t("tps_litigation_none"): "background-color: #e5e7eb; color: #374151",
+        t("tps_litigation_pending_ended"): "background-color: #fee2e2; color: #991b1b",
+        t("tps_litigation_pending_limited"): "background-color: #dcfce7; color: #166534",
+    }
     styled_tps = tps_frame.style.map(
         lambda value: decision_colors.get(value, ""), subset=[t("tps_column_decision")]
     ).map(
         lambda value: timing_colors.get(value, ""), subset=[t("tps_column_timing")]
     ).map(
         lambda value: litigation_colors.get(value, ""), subset=[t("tps_column_actual_end")]
+    ).map(
+        lambda value: litigation_status_colors.get(value, ""),
+        subset=[t("tps_column_litigation")],
     )
     st.dataframe(
         styled_tps,
