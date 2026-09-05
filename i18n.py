@@ -265,25 +265,35 @@ _STRINGS: dict[str, dict[str, str]] = {
         "tab_tps_decisions": "TPS decisions",
         "tab_how_it_works": "How it works",
         "tps_decisions_intro": (
-            "Termination notices published during the current Trump administration, "
-            "listed in Federal Register publication order."
+            "TPS actions published during the current Trump administration (since January 20, 2025). "
+            "Designations without a termination are listed first."
         ),
         "tps_decisions_date_note": (
-            "The expiration column shows the TPS expiration date DHS was reviewing, "
-            "not necessarily the date a termination took effect. Court orders and later "
-            "notices can change the practical result. Haiti's July 2025 notice was "
-            "superseded, so both official notices are listed."
+            "The expiration column shows the TPS expiration date DHS was reviewing. El Salvador, "
+            "Sudan, and Ukraine were extended on January 17, 2025, before this administration, so "
+            "they are marked as having no decision in this period. Haiti's July 2025 notice was "
+            "superseded, so both notices are listed. Timing: 60+ days before is green, fewer than "
+            "60 days before or the same day is red, and publication after expiration is orange."
         ),
         "tps_column_country": "Country / designation",
+        "tps_column_decision": "Decision",
         "tps_column_start": "TPS began",
         "tps_column_expiration": "Expiration reviewed",
         "tps_column_notice": "Notice published",
         "tps_column_timing": "Notice timing",
         "tps_column_source": "Official notice",
+        "tps_column_uscis": "USCIS TPS page",
         "tps_source_label": "Federal Register",
+        "tps_uscis_label": "USCIS",
+        "tps_decision_no_decision": "No decision in this period",
+        "tps_decision_termination": "Termination",
+        "tps_decision_extension": "Extension",
+        "tps_decision_extension_redesignation": "Extension + redesignation",
+        "tps_decision_auto_extension": "Automatic extension",
         "tps_timing_before": "{days} days before expiration",
         "tps_timing_after": "{days} days after expiration",
         "tps_timing_same_day": "Same day",
+        "tps_timing_none": "No notice in this period",
         "tps_superseded_suffix": " — superseded notice",
         "tps_decisions_footer": "Last verified against the Federal Register: September 4, 2026.",
         "tps_country_afghanistan": "Afghanistan",
@@ -300,6 +310,10 @@ _STRINGS: dict[str, dict[str, str]] = {
         "tps_country_ethiopia": "Ethiopia",
         "tps_country_somalia": "Somalia",
         "tps_country_yemen": "Yemen",
+        "tps_country_el_salvador": "El Salvador",
+        "tps_country_sudan": "Sudan",
+        "tps_country_ukraine": "Ukraine",
+        "tps_country_lebanon": "Lebanon",
         "join_button": "Join",
         "how_title": "How your message becomes community statistics",
         "how_intro": (
@@ -677,25 +691,36 @@ _STRINGS: dict[str, dict[str, str]] = {
         "metric_current_month": "Поточний місяць",
         "tab_how_it_works": "Як це працює",
         "tps_decisions_intro": (
-            "Повідомлення про припинення TPS, опубліковані за чинної адміністрації "
-            "Трампа, у порядку публікації у Federal Register."
+            "Рішення щодо TPS, опубліковані за чинної адміністрації Трампа (з 20 січня "
+            "2025 року). Призначення без рішення про припинення наведені першими."
         ),
         "tps_decisions_date_note": (
-            "У колонці завершення вказано дату закінчення TPS, яку розглядав DHS, "
-            "а не обов’язково дату набрання припиненням чинності. Судові рішення та "
-            "пізніші повідомлення можуть змінити практичний результат. Повідомлення "
-            "щодо Гаїті за липень 2025 року було замінене, тому наведено обидва."
+            "У колонці завершення вказано дату закінчення TPS, яку розглядав DHS. TPS для "
+            "Сальвадору, Судану та України продовжили 17 січня 2025 року, до початку цієї "
+            "адміністрації, тому для цього періоду вказано «рішення немає». Повідомлення щодо "
+            "Гаїті за липень 2025 року було замінене, тому наведено обидва. Час публікації: "
+            "60+ днів до завершення — зелений, менше ніж 60 днів або того самого дня — "
+            "червоний, після завершення — помаранчевий."
         ),
         "tps_column_country": "Країна / призначення",
+        "tps_column_decision": "Рішення",
         "tps_column_start": "Початок TPS",
         "tps_column_expiration": "Розглянута дата завершення",
         "tps_column_notice": "Дата публікації",
         "tps_column_timing": "Час публікації",
         "tps_column_source": "Офіційне повідомлення",
+        "tps_column_uscis": "Сторінка TPS на USCIS",
         "tps_source_label": "Federal Register",
+        "tps_uscis_label": "USCIS",
+        "tps_decision_no_decision": "Рішення за цей період немає",
+        "tps_decision_termination": "Припинення",
+        "tps_decision_extension": "Продовження",
+        "tps_decision_extension_redesignation": "Продовження + повторне призначення",
+        "tps_decision_auto_extension": "Автоматичне продовження",
         "tps_timing_before": "За {days} дн. до завершення",
         "tps_timing_after": "Через {days} дн. після завершення",
         "tps_timing_same_day": "Того самого дня",
+        "tps_timing_none": "Повідомлення за цей період немає",
         "tps_superseded_suffix": " — замінене повідомлення",
         "tps_decisions_footer": "Остання перевірка за Federal Register: 4 вересня 2026 року.",
         "tps_country_afghanistan": "Афганістан",
@@ -712,6 +737,10 @@ _STRINGS: dict[str, dict[str, str]] = {
         "tps_country_ethiopia": "Ефіопія",
         "tps_country_somalia": "Сомалі",
         "tps_country_yemen": "Ємен",
+        "tps_country_el_salvador": "Сальвадор",
+        "tps_country_sudan": "Судан",
+        "tps_country_ukraine": "Україна",
+        "tps_country_lebanon": "Ліван",
         "join_button": "Долучитися",
         "how_title": "Як ваше повідомлення стає частиною статистики",
         "how_intro": (

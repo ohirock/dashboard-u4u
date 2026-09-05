@@ -65,7 +65,7 @@ translations = _i18n.translations
 window_label = _i18n.window_label
 
 _tps_decisions = _load_local_module("tps_decisions")
-TPS_TERMINATION_DECISIONS = _tps_decisions.TPS_TERMINATION_DECISIONS
+TPS_DECISIONS = _tps_decisions.TPS_DECISIONS
 
 st.set_page_config(
     page_title="Community Immigration Case Tracker",
@@ -1496,8 +1496,10 @@ with tps_tab:
     st.markdown(t("tps_decisions_intro"))
     st.info(t("tps_decisions_date_note"))
     tps_rows = []
-    for decision in TPS_TERMINATION_DECISIONS:
-        if decision.timing_days < 0:
+    for decision in TPS_DECISIONS:
+        if decision.timing_days is None:
+            timing = t("tps_timing_none")
+        elif decision.timing_days < 0:
             timing = t("tps_timing_before", days=abs(decision.timing_days))
         elif decision.timing_days > 0:
             timing = t("tps_timing_after", days=decision.timing_days)
@@ -1509,15 +1511,39 @@ with tps_tab:
         tps_rows.append(
             {
                 t("tps_column_country"): country,
+                t("tps_column_decision"): t(f"tps_decision_{decision.decision_type}"),
                 t("tps_column_start"): decision.designation_start,
                 t("tps_column_expiration"): decision.expiration_reviewed,
                 t("tps_column_notice"): decision.notice_date,
                 t("tps_column_timing"): timing,
                 t("tps_column_source"): decision.notice_url,
+                t("tps_column_uscis"): decision.uscis_url,
             }
         )
+    tps_frame = pd.DataFrame(tps_rows)
+    decision_colors = {
+        t("tps_decision_no_decision"): "background-color: #e5e7eb; color: #374151",
+        t("tps_decision_termination"): "background-color: #fee2e2; color: #991b1b",
+        t("tps_decision_extension"): "background-color: #dcfce7; color: #166534",
+        t("tps_decision_extension_redesignation"): "background-color: #dbeafe; color: #1e40af",
+        t("tps_decision_auto_extension"): "background-color: #fef3c7; color: #92400e",
+    }
+    timing_colors = {}
+    for decision, row in zip(TPS_DECISIONS, tps_rows):
+        timing_value = row[t("tps_column_timing")]
+        if decision.timing_days is None:
+            timing_colors[timing_value] = "background-color: #e5e7eb; color: #374151"
+        elif decision.timing_days <= -60:
+            timing_colors[timing_value] = "background-color: #dcfce7; color: #166534"
+        elif decision.timing_days <= 0:
+            timing_colors[timing_value] = "background-color: #fee2e2; color: #991b1b"
+        else:
+            timing_colors[timing_value] = "background-color: #ffedd5; color: #9a3412"
+    styled_tps = tps_frame.style.map(
+        lambda value: decision_colors.get(value, ""), subset=[t("tps_column_decision")]
+    ).map(lambda value: timing_colors.get(value, ""), subset=[t("tps_column_timing")])
     st.dataframe(
-        pd.DataFrame(tps_rows),
+        styled_tps,
         width="stretch",
         hide_index=True,
         column_config={
@@ -1525,6 +1551,7 @@ with tps_tab:
             t("tps_column_expiration"): st.column_config.DateColumn(format="YYYY-MM-DD"),
             t("tps_column_notice"): st.column_config.DateColumn(format="YYYY-MM-DD"),
             t("tps_column_source"): st.column_config.LinkColumn(display_text=t("tps_source_label")),
+            t("tps_column_uscis"): st.column_config.LinkColumn(display_text=t("tps_uscis_label")),
         },
     )
     st.caption(t("tps_decisions_footer"))
