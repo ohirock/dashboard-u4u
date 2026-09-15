@@ -145,7 +145,7 @@ class DashboardDataTests(unittest.TestCase):
         )
         self.assertEqual(
             requests[0].get_header("X-u4u-dashboard-schema"),
-            "5",
+            "6",
         )
         self.assertIn("source=published", requests[0].full_url)
         self.assertEqual(snapshot.metrics.report_count, 1)

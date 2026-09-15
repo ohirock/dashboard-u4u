@@ -36,6 +36,34 @@ class DashboardCountBucket(StrictModel):
     count: int = Field(ge=0)
 
 
+class DashboardImmigrationActionMonthlyCount(StrictModel):
+    month_start: date
+    action_type: str = Field(min_length=1)
+    date_basis: str = Field(min_length=1)
+    date_kind: str | None = None
+    count: int = Field(ge=0)
+
+
+class DashboardImmigrationActionLinkCount(StrictModel):
+    precursor_type: str = Field(min_length=1)
+    outcome_type: str = Field(min_length=1)
+    relationship: str = Field(min_length=1)
+    count: int = Field(ge=0)
+
+
+class DashboardImmigrationActionMetrics(StrictModel):
+    report_count: int = Field(default=0, ge=0)
+    people_count: int = Field(default=0, ge=0)
+    nta_people_count: int = Field(default=0, ge=0)
+    detention_people_count: int = Field(default=0, ge=0)
+    actions_by_type: tuple[DashboardCountBucket, ...] = ()
+    monthly_counts: tuple[DashboardImmigrationActionMonthlyCount, ...] = ()
+    precursor_links: tuple[DashboardImmigrationActionLinkCount, ...] = ()
+    presence_states: tuple[DashboardCountBucket, ...] = ()
+    pending_matter_types: tuple[DashboardCountBucket, ...] = ()
+    eligibility_concerns: tuple[DashboardCountBucket, ...] = ()
+
+
 class DashboardDurationSummary(StrictModel):
     sample_size: int = Field(ge=0)
     average_days: float | None = None
@@ -146,6 +174,7 @@ class DashboardMetrics(StrictModel):
     outcomes_without_expedite: tuple[DashboardCountBucket, ...]
     historic_pending_count: int = Field(ge=0)
     historic_reviewed_count: int = Field(ge=0)
+    immigration_actions: DashboardImmigrationActionMetrics = DashboardImmigrationActionMetrics()
 
 
 class DashboardQuality(StrictModel):
@@ -244,7 +273,7 @@ def fetch_dashboard_snapshot(
         normalized + DASHBOARD_PATH + "?" + urlencode({"source": source}),
         headers={
             "Accept": "application/json",
-            "X-U4U-Dashboard-Schema": "5",
+            "X-U4U-Dashboard-Schema": "6",
         },
         method="GET",
     )

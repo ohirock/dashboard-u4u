@@ -103,6 +103,7 @@ _ANCHOR_HEADING_KEYS = (
     "tab_cases",
     "tab_personal",
     "tab_tps_decisions",
+    "tab_immigration_actions",
 )
 
 _SECTION_HEADING_KEYS = dict(
@@ -112,6 +113,7 @@ _SECTION_HEADING_KEYS = dict(
             "trends", "signals", "expedite", "estimates", "how", "input",
             "confirm", "stored", "privacy", "extracted", "notice",
             "interpretation", "speed", "cases", "self_tracking", "tps_actions",
+            "immigration_actions",
         ),
         _ANCHOR_HEADING_KEYS,
         strict=True,
@@ -126,6 +128,7 @@ _SECTION_TAB_KEYS = {
     "cases": "tab_cases",
     "self_tracking": "tab_personal",
     "tps_actions": "tab_tps_decisions",
+    "immigration_actions": "tab_immigration_actions",
     **{section: "tab_how_it_works" for section in (
         "how", "input", "confirm", "stored", "privacy", "extracted", "notice",
     )},
@@ -1142,6 +1145,7 @@ _tab_labels = (
     t("tab_estimates"),
     t("tab_personal"),
     t("tab_tps_decisions"),
+    t("tab_immigration_actions"),
     t("tab_how_it_works"),
 )
 _requested_tab_key = _SECTION_TAB_KEYS.get(_requested_section)
@@ -1150,7 +1154,16 @@ _requested_tab_label = t(_requested_tab_key) if _requested_tab_key else _tab_lab
 _language = st.query_params.get("lang") or "uk"
 _tab_widget_key = f"dashboard_tabs_{_language}_{_requested_section or 'root'}"
 
-speed_tab, cases_tab, expedite_tab, estimates_tab, personal_tab, tps_tab, how_tab = st.tabs(
+(
+    speed_tab,
+    cases_tab,
+    expedite_tab,
+    estimates_tab,
+    personal_tab,
+    tps_tab,
+    actions_tab,
+    how_tab,
+) = st.tabs(
     _tab_labels,
     default=_requested_tab_label,
     key=_tab_widget_key,
@@ -1605,6 +1618,97 @@ with tps_tab:
         },
     )
     st.caption(t("tps_decisions_footer"))
+
+with actions_tab:
+    _section_heading("subheader", "tab_immigration_actions", "immigration_actions")
+    st.markdown(t("actions_intro"))
+    action_metrics = metrics.immigration_actions
+    if action_metrics.report_count == 0:
+        st.info(t("actions_no_data"))
+    else:
+        a1, a2, a3, a4 = st.columns(4)
+        a1.metric(t("metric_action_reports"), action_metrics.report_count)
+        a2.metric(t("metric_people_affected"), action_metrics.people_count)
+        a3.metric(t("metric_nta_people"), action_metrics.nta_people_count)
+        a4.metric(t("metric_detained_people"), action_metrics.detention_people_count)
+
+        _bar(
+            action_metrics.actions_by_type,
+            key_label=t("column_action"),
+            title=t("actions_by_type_title"),
+            horizontal=True,
+        )
+
+        monthly_rows = [
+            {
+                t("column_month"): row.month_start,
+                t("column_action"): _label(row.action_type),
+                t("column_date_meaning"): _label(row.date_kind or row.date_basis),
+                t("column_count"): row.count,
+                "_basis": row.date_basis,
+            }
+            for row in action_metrics.monthly_counts
+        ]
+        monthly_frame = pd.DataFrame(monthly_rows)
+        for date_basis, title in (
+            ("message_posted", t("actions_reported_month_title")),
+            ("action_date", t("actions_event_month_title")),
+        ):
+            selected = monthly_frame[monthly_frame["_basis"] == date_basis].drop(
+                columns="_basis"
+            )
+            if selected.empty:
+                continue
+            figure = px.bar(
+                selected,
+                x=t("column_month"),
+                y=t("column_count"),
+                color=t("column_action"),
+                hover_data=[t("column_date_meaning")],
+                barmode="stack",
+                title=title,
+            )
+            st.plotly_chart(figure, width="stretch")
+        st.caption(t("actions_date_kind_note"))
+
+        _section_heading("subheader", "actions_context_title", "action_context")
+        context_columns = st.columns(3)
+        with context_columns[0]:
+            _bar(
+                action_metrics.presence_states,
+                key_label=t("actions_presence_title"),
+                title=t("actions_presence_title"),
+                horizontal=True,
+            )
+        with context_columns[1]:
+            _bar(
+                action_metrics.pending_matter_types,
+                key_label=t("actions_pending_title"),
+                title=t("actions_pending_title"),
+                horizontal=True,
+            )
+        with context_columns[2]:
+            _bar(
+                action_metrics.eligibility_concerns,
+                key_label=t("actions_eligibility_title"),
+                title=t("actions_eligibility_title"),
+                horizontal=True,
+            )
+
+        if action_metrics.precursor_links:
+            st.markdown(f"### {t('actions_links_title')}")
+            _dataframe(
+                pd.DataFrame(
+                    {
+                        t("column_precursor"): _label(row.precursor_type),
+                        t("column_outcome"): _label(row.outcome_type),
+                        t("column_relationship"): _label(row.relationship),
+                        t("column_count"): row.count,
+                    }
+                    for row in action_metrics.precursor_links
+                )
+            )
+    st.warning(t("actions_disclaimer"))
 
 with how_tab:
     _section_heading("header", "how_title", "how")
