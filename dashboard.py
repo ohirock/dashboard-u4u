@@ -77,6 +77,7 @@ st.set_page_config(
 # canonical snapshot and the personal-tracking snapshot alike), so there is
 # one consistent number instead of two different ones to reconcile.
 PAGE_DATA_CACHE_TTL_SECONDS = 300
+EXPEDITE_CASE_FAMILIES = ("tps", "re_parole", "ead")
 
 
 _ANCHOR_HEADING_KEYS = (
@@ -1389,7 +1390,9 @@ with expedite_tab:
     comparison = _expedite_frame(metrics.expedite_duration_comparisons)
     if not comparison.empty:
         comparison = comparison[
-            comparison[t("column_case_type")].isin([_label("re_parole"), _label("ead")])
+            comparison[t("column_case_type")].isin(
+                [_label(family) for family in EXPEDITE_CASE_FAMILIES]
+            )
             & (comparison[t("column_milestone")] == _label("decision"))
         ]
     _section_heading("subheader", "subheader_expedite_comparison", "expedite")
@@ -1397,16 +1400,18 @@ with expedite_tab:
         st.info(t("info_no_expedite_comparison"))
     else:
         _dataframe(comparison)
-    heatmap_left, heatmap_right = st.columns(2)
     monthly_decision_durations = getattr(
         metrics,
         "monthly_decision_durations",
         (),
     )
-    with heatmap_left:
-        _monthly_decision_chart(monthly_decision_durations, "re_parole")
-    with heatmap_right:
-        _monthly_decision_chart(monthly_decision_durations, "ead")
+    for column, family in zip(
+        st.columns(len(EXPEDITE_CASE_FAMILIES)),
+        EXPEDITE_CASE_FAMILIES,
+        strict=True,
+    ):
+        with column:
+            _monthly_decision_chart(monthly_decision_durations, family)
     st.caption(t("caption_monthly_decision_chart"))
     e1, e2 = st.columns(2)
     e1.metric(t("metric_expedite_requests"), metrics.expedite_request_count)
