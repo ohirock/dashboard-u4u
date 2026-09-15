@@ -302,6 +302,23 @@ _STRINGS: dict[str, dict[str, str]] = {
         "metric_nta_people": "People reporting NTA",
         "metric_detained_people": "People reporting detention",
         "actions_by_type_title": "Reported actions",
+        "actions_status_glossary": (
+            "#### What each reported action means\n"
+            "- **NTA:** A report that a Notice to Appear or immigration-court summons/notice was issued, sent, or received. An NTA does not by itself mean detention or a removal order.\n"
+            "- **Immigration court hearing:** A scheduled, completed, cancelled, or rescheduled immigration-court hearing.\n"
+            "- **ICE check-in:** An appointment or reporting visit with ICE, including a supervision check-in.\n"
+            "- **Immigration detention:** An explicit report of custody, detention, or arrest by an immigration authority.\n"
+            "- **Released from detention:** An explicit report that a person was released from immigration custody.\n"
+            "- **Bond:** A reported immigration-bond event, such as bond being set, granted, paid, or denied.\n"
+            "- **Supervision:** Formal immigration supervision or release conditions, which may include ICE reporting or monitoring.\n"
+            "- **Removal proceedings:** A report that a person was placed in removal proceedings. This does not mean a final removal order was issued.\n"
+            "- **Removal order:** A report that removal was ordered. This is separate from removal actually being completed.\n"
+            "- **Removal completed:** A report that a person was removed or deported.\n"
+            "- **Status terminated:** An individual's status or immigration benefit was explicitly terminated or revoked—not merely expired and not a country-wide policy change.\n"
+            "- **Status reinstated:** A previously terminated or revoked individual status or benefit was explicitly restored.\n"
+            "- **Other immigration action:** An explicit personal action by an immigration agency or court that did not fit the categories above.\n\n"
+            "These definitions describe how community reports are classified for this dashboard. They are not legal determinations, and one report may contain several actions."
+        ),
         "actions_reported_month_title": "When reports were posted",
         "actions_event_month_title": "When actions were reported to have happened",
         "actions_date_kind_note": "Action dates preserve whether the source said issued, sent, received, occurred, or scheduled. Unknown dates are not inferred.",
@@ -766,6 +783,23 @@ _STRINGS: dict[str, dict[str, str]] = {
         "metric_nta_people": "Людей із повідомленим NTA",
         "metric_detained_people": "Людей із повідомленим затриманням",
         "actions_by_type_title": "Повідомлені дії",
+        "actions_status_glossary": (
+            "#### Що означає кожна повідомлена дія\n"
+            "- **Повідомлення про явку до суду (NTA):** Повідомлення про те, що Notice to Appear або повістку/виклик до імміграційного суду видали, надіслали чи отримали. NTA саме по собі не означає затримання або наказ про видворення.\n"
+            "- **Слухання в імміграційному суді:** Заплановане, проведене, скасоване або перенесене слухання в імміграційному суді.\n"
+            "- **Зустріч / check-in з ICE:** Призначена зустріч або візит для реєстрації в ICE, зокрема check-in у межах нагляду.\n"
+            "- **Імміграційне затримання:** Пряме повідомлення про взяття під варту, затримання або арешт імміграційним органом.\n"
+            "- **Звільнення із затримання:** Пряме повідомлення про звільнення людини з-під імміграційної варти.\n"
+            "- **Застава:** Повідомлена подія щодо імміграційної застави — наприклад, її призначили, дозволили, сплатили або відмовили в ній.\n"
+            "- **Нагляд імміграційної служби:** Формальний нагляд або умови звільнення, які можуть включати реєстрацію в ICE чи моніторинг.\n"
+            "- **Процедура видворення:** Повідомлення про початок або перебування у процедурі видворення. Це не означає, що вже видано остаточний наказ про видворення.\n"
+            "- **Наказ про видворення:** Повідомлення про виданий наказ щодо видворення. Це окрема подія від фактичного виконання видворення.\n"
+            "- **Видворення виконано:** Повідомлення про те, що людину фактично видворили або депортували.\n"
+            "- **Статус припинено:** Індивідуальний статус або імміграційну пільгу прямо припинили чи відкликали — не просто закінчився строк дії й не відбулася загальна зміна політики.\n"
+            "- **Статус поновлено:** Раніше припинений або відкликаний індивідуальний статус чи пільгу прямо відновили.\n"
+            "- **Інша імміграційна дія:** Пряма особиста дія імміграційного органу або суду, яка не відповідає категоріям вище.\n\n"
+            "Ці визначення пояснюють, як повідомлення спільноти класифікуються для дашборду. Це не юридичні висновки, а одне повідомлення може містити кілька дій."
+        ),
         "actions_reported_month_title": "Коли повідомлення опублікували",
         "actions_event_month_title": "Коли, за повідомленням, відбулася дія",
         "actions_date_kind_note": "Для дат дій зберігається значення: видано, надіслано, отримано, відбулося або заплановано. Невідомі дати не вгадуються.",

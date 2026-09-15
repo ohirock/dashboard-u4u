@@ -1638,6 +1638,7 @@ with actions_tab:
             title=t("actions_by_type_title"),
             horizontal=True,
         )
+        st.markdown(t("actions_status_glossary"))
 
         monthly_rows = [
             {
