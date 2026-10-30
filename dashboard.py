@@ -104,6 +104,7 @@ _ANCHOR_HEADING_KEYS = (
     "tab_personal",
     "tab_tps_decisions",
     "tab_immigration_actions",
+    "tab_questionnaire",
 )
 
 _SECTION_HEADING_KEYS = dict(
@@ -114,6 +115,7 @@ _SECTION_HEADING_KEYS = dict(
             "confirm", "stored", "privacy", "extracted", "notice",
             "interpretation", "speed", "cases", "self_tracking", "tps_actions",
             "immigration_actions",
+            "questionnaire",
         ),
         _ANCHOR_HEADING_KEYS,
         strict=True,
@@ -129,6 +131,7 @@ _SECTION_TAB_KEYS = {
     "self_tracking": "tab_personal",
     "tps_actions": "tab_tps_decisions",
     "immigration_actions": "tab_immigration_actions",
+    "questionnaire": "tab_questionnaire",
     **{section: "tab_how_it_works" for section in (
         "how", "input", "confirm", "stored", "privacy", "extracted", "notice",
     )},
@@ -1144,6 +1147,7 @@ _tab_labels = (
     t("tab_expedite"),
     t("tab_estimates"),
     t("tab_personal"),
+    t("tab_questionnaire"),
     t("tab_tps_decisions"),
     t("tab_immigration_actions"),
     t("tab_how_it_works"),
@@ -1160,6 +1164,7 @@ _tab_widget_key = f"dashboard_tabs_{_language}_{_requested_section or 'root'}"
     expedite_tab,
     estimates_tab,
     personal_tab,
+    questionnaire_tab,
     tps_tab,
     actions_tab,
     how_tab,
@@ -1508,6 +1513,70 @@ with personal_tab:
                 generated_at=personal_snapshot.generated_at.strftime("%Y-%m-%d %H:%M UTC"),
             )
         )
+
+with questionnaire_tab:
+    _section_heading("subheader", "tab_questionnaire", "questionnaire")
+    st.caption(t("questionnaire_intro"))
+    questionnaire = getattr(personal_snapshot, "questionnaire", None)
+    if questionnaire is None:
+        st.info(t("questionnaire_unavailable"))
+    else:
+        total = personal_snapshot.counts.submission_count
+        answered = questionnaire.answered_submission_count
+        first, second, third = st.columns(3)
+        first.metric(t("questionnaire_answered"), answered)
+        second.metric(t("questionnaire_coverage"), f"{answered / total:.1%}" if total else "0%")
+        third.metric(t("questionnaire_missing"), total - answered)
+        st.caption(t("questionnaire_counting", complete=questionnaire.complete_submission_count))
+        if not answered:
+            st.info(t("questionnaire_empty"))
+        else:
+            st.info(t("questionnaire_caution"))
+            for index in range(0, len(questionnaire.questions), 2):
+                columns = st.columns(2)
+                for column, question in zip(columns, questionnaire.questions[index:index + 2]):
+                    with column:
+                        st.markdown("#### " + t("questionnaire_" + question.field))
+                        st.caption(t("questionnaire_denominator", answered=question.answered_count,
+                                     missing=total - question.answered_count))
+                        _dataframe(pd.DataFrame([
+                            {
+                                t("questionnaire_answer"): t("questionnaire_answer_" + bucket.key),
+                                t("column_count"): bucket.count,
+                                t("questionnaire_share"): (
+                                    f"{bucket.count / question.answered_count:.1%}"
+                                    if question.answered_count else "—"
+                                ),
+                            }
+                            for bucket in question.by_answer
+                        ]))
+
+            def _questionnaire_outcomes(groups, key_title, evidence=False):
+                statuses = ["pending", "conditional_approval", "approved", "denied"]
+                statuses += sorted({
+                    bucket.key for group in groups for bucket in group.by_status
+                } - set(statuses))
+                rows = []
+                for group in groups:
+                    counts = {bucket.key: bucket.count for bucket in group.by_status}
+                    rows.append({
+                        key_title: t("questionnaire_answer_" + group.key) if evidence else label(group.key),
+                        **{label(status): counts.get(status, 0) for status in statuses},
+                        t("column_count"): sum(counts.values()),
+                    })
+                return pd.DataFrame(rows)
+
+            st.markdown("### " + t("questionnaire_outcomes"))
+            _dataframe(_questionnaire_outcomes(
+                questionnaire.outcomes_by_form, t("column_form"),
+            ))
+            st.markdown("### " + t("questionnaire_evidence_outcomes"))
+            _dataframe(_questionnaire_outcomes(
+                questionnaire.reparole_evidence_outcomes, t("questionnaire_answer"), evidence=True,
+            ))
+        st.caption(t("caption_personal_generated", generated_at=personal_snapshot.generated_at.strftime(
+            "%Y-%m-%d %H:%M UTC",
+        )))
 
 with tps_tab:
     _section_heading("subheader", "tab_tps_decisions", "tps_actions")

@@ -217,11 +217,31 @@ class PersonalDashboardCounts(StrictModel):
     by_filed_month: tuple[DashboardCountBucket, ...] = ()
 
 
+class QuestionnaireQuestion(StrictModel):
+    field: str
+    answered_count: int = Field(ge=0)
+    by_answer: tuple[DashboardCountBucket, ...] = ()
+
+
+class QuestionnaireOutcomes(StrictModel):
+    key: str
+    by_status: tuple[DashboardCountBucket, ...] = ()
+
+
+class PersonalQuestionnaireMetrics(StrictModel):
+    answered_submission_count: int = Field(default=0, ge=0)
+    complete_submission_count: int = Field(default=0, ge=0)
+    questions: tuple[QuestionnaireQuestion, ...] = ()
+    outcomes_by_form: tuple[QuestionnaireOutcomes, ...] = ()
+    reparole_evidence_outcomes: tuple[QuestionnaireOutcomes, ...] = ()
+
+
 class PersonalDashboardSnapshot(StrictModel):
     generated_at: datetime
     data_version: int = Field(gt=0)
     counts: PersonalDashboardCounts
     pending_wait_days: DashboardDurationSummary
+    questionnaire: PersonalQuestionnaireMetrics | None = None
 
 
 def public_api_base_url(
@@ -325,7 +345,7 @@ def fetch_personal_dashboard_snapshot(
     try:
         normalized = public_api_base_url({PUBLIC_API_URL_ENV: base_url})
         request = Request(
-            normalized + PERSONAL_DASHBOARD_PATH,
+            normalized + PERSONAL_DASHBOARD_PATH + "?include_questionnaire=true",
             headers={"Accept": "application/json"},
             method="GET",
         )
