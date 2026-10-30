@@ -44,12 +44,14 @@ class QuestionnaireTests(unittest.TestCase):
         self.assertEqual(current.questionnaire.questions[0].by_answer[1].count, 0)
 
     def test_questionnaire_tab_renders_both_languages_and_legacy_fallback(self):
+        import streamlit as st
         from streamlit.testing.v1 import AppTest
 
         sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
         for language in ("uk", "en"):
             for extended in (True, False):
                 with self.subTest(language=language, extended=extended):
+                    st.cache_data.clear()
                     personal = PersonalDashboardSnapshot.model_validate(
                         questionnaire_document() if extended else personal_snapshot_document()
                     )
@@ -67,6 +69,12 @@ class QuestionnaireTests(unittest.TestCase):
                     self.assertIn(expected, [tab.label for tab in app.tabs])
                     if extended:
                         self.assertIn("50.0%", [metric.value for metric in app.metric])
+                    else:
+                        expected_info = (
+                            "Статистика анкети поки недоступна"
+                            if language == "uk" else "Questionnaire statistics are not available yet"
+                        )
+                        self.assertTrue(any(expected_info in item.value for item in app.info))
 
 
 if __name__ == "__main__":
