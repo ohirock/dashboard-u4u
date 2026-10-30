@@ -19,6 +19,14 @@ def questionnaire_document():
         "questions": [{
             "field": "arrival_route", "answered_count": 1,
             "by_answer": [{"key": "u4u", "count": 1}, {"key": "mexico", "count": 0}],
+            "wait_times": [
+                {"answer": "u4u", "case_family": "re_parole", "stage": "awaiting_final",
+                 "sample_size": 2, "excluded_count": 1, "min_days": 10,
+                 "average_days": 20.0, "max_days": 30},
+                {"answer": "u4u", "case_family": "ead", "stage": "approved",
+                 "sample_size": 0, "excluded_count": 1, "min_days": None,
+                 "average_days": None, "max_days": None},
+            ],
         }],
         "outcomes_by_form": [{
             "key": "i_131", "by_status": [{"key": "conditional_approval", "count": 1}],
@@ -40,6 +48,7 @@ class QuestionnaireTests(unittest.TestCase):
         self.assertIsNotNone(legacy)
         self.assertIsNone(legacy.questionnaire)
         self.assertIn("include_questionnaire=true", requests[0].full_url)
+        self.assertIn("include_wait_times=true", requests[0].full_url)
         current = PersonalDashboardSnapshot.model_validate(questionnaire_document())
         self.assertEqual(current.questionnaire.questions[0].by_answer[1].count, 0)
 
@@ -69,6 +78,9 @@ class QuestionnaireTests(unittest.TestCase):
                     self.assertIn(expected, [tab.label for tab in app.tabs])
                     if extended:
                         self.assertIn("50.0%", [metric.value for metric in app.metric])
+                        min_column = "Мін. днів" if language == "uk" else "Min days"
+                        tables = [item.value for item in app.dataframe if min_column in item.value]
+                        self.assertEqual(len(tables), 2)
                     else:
                         expected_info = (
                             "Статистика анкети поки недоступна"

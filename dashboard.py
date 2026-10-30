@@ -1532,6 +1532,7 @@ with questionnaire_tab:
             st.info(t("questionnaire_empty"))
         else:
             st.info(t("questionnaire_caution"))
+            st.caption(t("questionnaire_wait_note", date=personal_snapshot.generated_at.strftime("%Y-%m-%d")))
             for index in range(0, len(questionnaire.questions), 2):
                 columns = st.columns(2)
                 for column, question in zip(columns, questionnaire.questions[index:index + 2]):
@@ -1550,6 +1551,24 @@ with questionnaire_tab:
                             }
                             for bucket in question.by_answer
                         ]))
+                        with st.expander(t("questionnaire_waits")):
+                            waits = getattr(question, "wait_times", ())
+                            if not waits:
+                                st.caption(t("questionnaire_wait_empty"))
+                            for family, stage in sorted({(row.case_family, row.stage) for row in waits}):
+                                st.markdown("**" + label(family) + " · "
+                                            + t("questionnaire_stage_" + stage) + "**")
+                                _dataframe(pd.DataFrame([
+                                    {
+                                        t("questionnaire_answer"): t("questionnaire_answer_" + row.answer),
+                                        t("questionnaire_sample"): row.sample_size,
+                                        t("questionnaire_min"): row.min_days,
+                                        t("questionnaire_avg"): _one_decimal(row.average_days),
+                                        t("questionnaire_max"): row.max_days,
+                                        t("questionnaire_excluded"): row.excluded_count,
+                                    }
+                                    for row in waits if row.case_family == family and row.stage == stage
+                                ]))
 
             def _questionnaire_outcomes(groups, key_title, evidence=False):
                 statuses = ["pending", "conditional_approval", "approved", "denied"]
